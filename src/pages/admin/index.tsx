@@ -23,7 +23,11 @@ import Link from "next/link";
 
 // Importando a formatação da data
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale"; // Se você deseja a data em português.
+import { ptBR } from "date-fns/locale";
+
+// NOVOS IMPORTS PARA UI/UX
+import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 
 interface HomeProps {
   user: {
@@ -56,7 +60,7 @@ export default function Admin({ user }: HomeProps) {
           lista.push({
             id: doc.id,
             tarefa: doc.data().tarefa,
-            created: doc.data().created.toDate(), // Convertendo o timestamp para Date
+            created: doc.data().created.toDate(),
             user: doc.data().user,
             public: doc.data().public,
           });
@@ -78,7 +82,10 @@ export default function Admin({ user }: HomeProps) {
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
 
-    if (input === "") return;
+    if (input === "") {
+      toast.warn("Digite alguma tarefa!");
+      return;
+    }
 
     try {
       await addDoc(collection(db, "tarefas"), {
@@ -90,8 +97,10 @@ export default function Admin({ user }: HomeProps) {
 
       setInput("");
       setPublicTask(false);
+      toast.success("Tarefa registrada com sucesso!");
     } catch (err) {
       console.log(err);
+      toast.error("Erro ao registrar tarefa.");
     }
   }
 
@@ -99,21 +108,30 @@ export default function Admin({ user }: HomeProps) {
     await navigator.clipboard.writeText(
       `${process.env.NEXT_PUBLIC_URL}/task/${id}`
     );
-
-    alert("URL Copiada com sucesso!");
+    toast.info("URL copiada com sucesso!");
   }
 
-  // Função de confirmação antes de deletar a tarefa
+  // Função de confirmação com SweetAlert2
   const handleDeleteTask = async (id: string) => {
-    const isConfirmed = window.confirm("Você tem certeza que deseja deletar a tarefa?");
-    if (isConfirmed) {
+    const result = await Swal.fire({
+      title: "Tem certeza?",
+      text: "Você não poderá reverter esta ação!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ea3140",
+      cancelButtonColor: "#3183ff",
+      confirmButtonText: "Sim, deletar!",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
       const docRef = doc(db, "tarefas", id);
       try {
         await deleteDoc(docRef);
-        alert("Tarefa deletada com sucesso!");
+        toast.success("Tarefa deletada com sucesso!");
       } catch (err) {
         console.log("Erro ao deletar tarefa:", err);
-        alert("Erro ao deletar tarefa.");
+        toast.error("Erro ao deletar tarefa.");
       }
     }
   };
@@ -185,16 +203,18 @@ export default function Admin({ user }: HomeProps) {
 
                   <button
                     className={styles.trashButton}
-                    onClick={() => handleDeleteTask(item.id)} // Chama a função de confirmação antes de deletar
+                    onClick={() => handleDeleteTask(item.id)}
                   >
                     <FaTrash size={24} color="#ea3140" />
                   </button>
                 </div>
 
-                {/* Exibindo o nome do usuário e a data de criação */}
                 <div className={styles.taskFooter}>
                   <span className={styles.createdAt}>
-                    Criado por: <strong>{item.user}</strong> em {format(item.created, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    Criado por: <strong>{item.user}</strong> em{" "}
+                    {format(item.created, "dd/MM/yyyy 'às' HH:mm", {
+                      locale: ptBR,
+                    })}
                   </span>
                 </div>
               </article>
@@ -206,17 +226,18 @@ export default function Admin({ user }: HomeProps) {
   );
 }
 
-// getServerSideProps para autenticação do usuário
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
 
-  // Verifica se o usuário está autenticado e se o e-mail é o dele
-  if (!session?.user || 
-    (session.user.email !== "leogomdesenvolvimento@gmail.com" && session.user.email !== "azulcargov@gmail.com" && session.user.email !== "leogomecommerce@gmail.com")) {
-    // Redireciona para a página a página home caso o usuário não tenha permissão
+  if (
+    !session?.user ||
+    (session.user.email !== "leogomdesenvolvimento@gmail.com" &&
+      session.user.email !== "azulcargov@gmail.com" &&
+      session.user.email !== "leogomecommerce@gmail.com")
+  ) {
     return {
       redirect: {
-        destination: "/", // Rota de erro 
+        destination: "/",
         permanent: false,
       },
     };
