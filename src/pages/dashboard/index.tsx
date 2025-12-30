@@ -138,7 +138,7 @@ export default function Dashboard({ user }: HomeProps) {
 
   // NOVA LÓGICA DE DELETAR COM DESFAZER
   const handleDeleteTask = async (task: TaskProps) => {
-    let undone = false;
+    let isUndone = false; // Controle local simples
 
     const toastId = toast.info(
       <div
@@ -146,22 +146,24 @@ export default function Dashboard({ user }: HomeProps) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          width: "100%",
         }}
       >
         <span>Tarefa removida</span>
         <button
           onClick={() => {
-            undone = true;
-            toast.dismiss(toastId);
+            isUndone = true; // Marca que o usuário clicou em desfazer
+            toast.dismiss(toastId); // Fecha este toast
           }}
           style={{
-            background: "#3183ff",
-            color: "#fff",
+            background: "#FFF",
+            color: "#3183ff",
             border: "none",
-            padding: "4px 8px",
+            padding: "4px 12px",
             borderRadius: "4px",
             cursor: "pointer",
             marginLeft: "10px",
+            fontWeight: "bold",
           }}
         >
           Desfazer
@@ -169,12 +171,22 @@ export default function Dashboard({ user }: HomeProps) {
       </div>,
       {
         autoClose: 4000,
+        closeOnClick: false, // Evita fechar o toast ao clicar na barra, forçando o uso do botão
         onClose: async () => {
-          if (!undone) {
-            const docRef = doc(db, "tarefas", task.id);
-            await deleteDoc(docRef);
+          if (isUndone) {
+            // Se o usuário clicou em desfazer, apenas avisamos e NÃO deletamos do banco
+            toast.success("Ação desfeita!", {
+              toastId: "undo-success", // ID fixo evita duplicatas se clicar rápido
+              autoClose: 2000,
+            });
           } else {
-            toast.success("Ação desfeita com sucesso!");
+            // Se o tempo acabou e NÃO foi clicado em desfazer, deleta permanentemente
+            try {
+              const docRef = doc(db, "tarefas", task.id);
+              await deleteDoc(docRef);
+            } catch (err) {
+              console.error("Erro ao deletar:", err);
+            }
           }
         },
       }
