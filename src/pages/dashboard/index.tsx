@@ -116,7 +116,7 @@ export default function Dashboard({ user }: HomeProps) {
         toast.success("Tarefa registrada!");
       }
       setInput("");
-      setPriority("low"); // Reseta para o padrão
+      setPriority("baixa"); // Reseta para o padrão
     } catch (err) {
       console.log(err);
     }
