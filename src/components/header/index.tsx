@@ -7,6 +7,7 @@ export function Header() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isOnAdminPage = router.pathname === "/admin"; // Verificar se a página é "/admin"
+  const isDashboardPage = router.pathname === "/dashboard"; // Verificar se a página é "/dashboard"
 
   // Lista de e-mails permitidos para acesso à página admin
   const allowedAdminEmails = [
@@ -26,7 +27,7 @@ export function Header() {
           <Link href="/">
             <h1 className={styles.logo}>Tasks</h1>
           </Link>
-          {session?.user && (
+          {session?.user && !isDashboardPage && (
             <Link href="/dashboard" className={styles.link}>
               Painel
             </Link>
