@@ -27,9 +27,14 @@ export function Header() {
           <Link href="/">
             <h1 className={styles.logo}>Tasks</h1>
           </Link>
-          {session?.user && (
+          {session?.user && !isDashboardPage && (
             <Link href="/dashboard" className={styles.link}>
               Painel
+            </Link>
+          )}
+          {session?.user && isDashboardPage && (
+            <Link href="/" className={styles.link}>
+              Início
             </Link>
           )}
 
