@@ -31,8 +31,9 @@
 }
 .infoContent {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
   align-items: center;
+  gap: 20px;
 }
 .box {
   background-color: #fafafa;
@@ -47,7 +48,7 @@
 .footer {
   width: 100%;
   height: 100%;
-  margin-top: 50px;
+  margin-top: 30px;
   color: #fff;
   text-align: center;
   background-color: #0f0f0f;
