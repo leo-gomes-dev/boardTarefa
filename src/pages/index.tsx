@@ -31,8 +31,9 @@ export default function Home({ posts }: HomeProps) {
           />
         </div>
         <h1 className={styles.title}>
-          Sistema feito para você se organizar <br />
-          de forma simples.
+          Simples, direto e organizado.
+          <br />
+          "Domine o seu dia, uma tarefa por vez."
         </h1>
 
         <div className={styles.infoContent}>
