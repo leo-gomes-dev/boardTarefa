@@ -6,7 +6,7 @@ import Head from "next/head";
 import { getSession } from "next-auth/react";
 import { Textarea } from "../../components/textarea";
 import { FiShare2 } from "react-icons/fi";
-import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa"; // Ícones novos
+import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa";
 
 import { db } from "../../services/firebaseConnection";
 
@@ -19,7 +19,7 @@ import {
   onSnapshot,
   doc,
   deleteDoc,
-  updateDoc, // Importante para editar e concluir
+  updateDoc,
 } from "firebase/firestore";
 import Link from "next/link";
 
@@ -39,7 +39,7 @@ interface TaskProps {
   public: boolean;
   tarefa: string;
   user: string;
-  completed?: boolean; // Novo campo
+  completed?: boolean;
 }
 
 export default function Dashboard({ user }: HomeProps) {
@@ -89,7 +89,6 @@ export default function Dashboard({ user }: HomeProps) {
 
     try {
       if (editingTaskId) {
-        // Lógica de EDITAR tarefa existente
         const docRef = doc(db, "tarefas", editingTaskId);
         await updateDoc(docRef, {
           tarefa: input,
@@ -98,7 +97,6 @@ export default function Dashboard({ user }: HomeProps) {
         setEditingTaskId(null);
         toast.success("Tarefa atualizada!");
       } else {
-        // Lógica de CRIAR nova tarefa
         await addDoc(collection(db, "tarefas"), {
           tarefa: input,
           created: new Date(),
@@ -117,7 +115,6 @@ export default function Dashboard({ user }: HomeProps) {
     }
   }
 
-  // Função handleShare que estava faltando
   async function handleShare(id: string) {
     await navigator.clipboard.writeText(
       `${process.env.NEXT_PUBLIC_URL}/task/${id}`
@@ -139,10 +136,49 @@ export default function Dashboard({ user }: HomeProps) {
     });
   }
 
-  const handleDeleteTask = async (id: string) => {
-    const docRef = doc(db, "tarefas", id);
-    await deleteDoc(docRef);
-    toast.success("Tarefa deletada com sucesso!");
+  // NOVA LÓGICA DE DELETAR COM DESFAZER
+  const handleDeleteTask = async (task: TaskProps) => {
+    let undone = false;
+
+    const toastId = toast.info(
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span>Tarefa removida</span>
+        <button
+          onClick={() => {
+            undone = true;
+            toast.dismiss(toastId);
+          }}
+          style={{
+            background: "#3183ff",
+            color: "#fff",
+            border: "none",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            cursor: "pointer",
+            marginLeft: "10px",
+          }}
+        >
+          Desfazer
+        </button>
+      </div>,
+      {
+        autoClose: 4000,
+        onClose: async () => {
+          if (!undone) {
+            const docRef = doc(db, "tarefas", task.id);
+            await deleteDoc(docRef);
+          } else {
+            toast.success("Ação desfeita com sucesso!");
+          }
+        },
+      }
+    );
   };
 
   return (
@@ -216,7 +252,6 @@ export default function Dashboard({ user }: HomeProps) {
                   </>
                 )}
 
-                {/* Botão de Checkbox para Marcar como Lida */}
                 <button
                   style={{
                     background: "transparent",
@@ -266,7 +301,7 @@ export default function Dashboard({ user }: HomeProps) {
 
                   <button
                     className={styles.trashButton}
-                    onClick={() => handleDeleteTask(item.id)}
+                    onClick={() => handleDeleteTask(item)}
                   >
                     <FaTrash size={24} color="#ea3140" />
                   </button>
