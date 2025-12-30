@@ -6,7 +6,7 @@ import Head from "next/head";
 import { getSession } from "next-auth/react";
 import { Textarea } from "../../components/textarea";
 import { FiShare2 } from "react-icons/fi";
-import { FaTrash } from "react-icons/fa";
+import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa"; // Ícones novos
 
 import { db } from "../../services/firebaseConnection";
 
@@ -19,6 +19,7 @@ import {
   onSnapshot,
   doc,
   deleteDoc,
+  updateDoc, // Importante para editar e concluir
 } from "firebase/firestore";
 import Link from "next/link";
 
@@ -38,12 +39,14 @@ interface TaskProps {
   public: boolean;
   tarefa: string;
   user: string;
+  completed?: boolean; // Novo campo
 }
 
 export default function Dashboard({ user }: HomeProps) {
   const [input, setInput] = useState("");
   const [publicTask, setPublicTask] = useState(false);
   const [tasks, setTasks] = useState<TaskProps[]>([]);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadTarefas() {
@@ -64,6 +67,7 @@ export default function Dashboard({ user }: HomeProps) {
             created: doc.data().created,
             user: doc.data().user,
             public: doc.data().public,
+            completed: doc.data().completed || false,
           });
         });
 
@@ -84,34 +88,60 @@ export default function Dashboard({ user }: HomeProps) {
     if (input === "") return;
 
     try {
-      await addDoc(collection(db, "tarefas"), {
-        tarefa: input,
-        created: new Date(),
-        user: user?.email,
-        public: publicTask,
-      });
+      if (editingTaskId) {
+        // Lógica de EDITAR tarefa existente
+        const docRef = doc(db, "tarefas", editingTaskId);
+        await updateDoc(docRef, {
+          tarefa: input,
+          public: publicTask,
+        });
+        setEditingTaskId(null);
+        toast.success("Tarefa atualizada!");
+      } else {
+        // Lógica de CRIAR nova tarefa
+        await addDoc(collection(db, "tarefas"), {
+          tarefa: input,
+          created: new Date(),
+          user: user?.email,
+          public: publicTask,
+          completed: false,
+        });
+        toast.success("Tarefa registrada!");
+      }
 
       setInput("");
       setPublicTask(false);
     } catch (err) {
       console.log(err);
+      toast.error("Erro ao salvar tarefa.");
     }
   }
 
+  // Função handleShare que estava faltando
   async function handleShare(id: string) {
     await navigator.clipboard.writeText(
       `${process.env.NEXT_PUBLIC_URL}/task/${id}`
     );
+    toast.info("URL Copiada com sucesso!");
+  }
 
-    alert("URL Copiada com sucesso!");
+  function handleEdit(item: TaskProps) {
+    setInput(item.tarefa);
+    setPublicTask(item.public);
+    setEditingTaskId(item.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleToggleComplete(id: string, completed: boolean) {
+    const docRef = doc(db, "tarefas", id);
+    await updateDoc(docRef, {
+      completed: !completed,
+    });
   }
 
   const handleDeleteTask = async (id: string) => {
     const docRef = doc(db, "tarefas", id);
-
     await deleteDoc(docRef);
-
-    // Exibindo o Toast de sucesso
     toast.success("Tarefa deletada com sucesso!");
   };
 
@@ -124,7 +154,9 @@ export default function Dashboard({ user }: HomeProps) {
       <main className={styles.main}>
         <section className={styles.content}>
           <div className={styles.contentForm}>
-            <h1 className={styles.title}>Qual sua tarefa?</h1>
+            <h1 className={styles.title}>
+              {editingTaskId ? "Editando sua tarefa" : "Qual sua tarefa?"}
+            </h1>
 
             <form onSubmit={handleRegisterTask}>
               <Textarea
@@ -145,8 +177,23 @@ export default function Dashboard({ user }: HomeProps) {
               </div>
 
               <button className={styles.button} type="submit">
-                Registrar
+                {editingTaskId ? "Salvar Alterações" : "Registrar"}
               </button>
+
+              {editingTaskId && (
+                <button
+                  type="button"
+                  className={styles.button}
+                  style={{ backgroundColor: "#888", marginTop: 10 }}
+                  onClick={() => {
+                    setEditingTaskId(null);
+                    setInput("");
+                    setPublicTask(false);
+                  }}
+                >
+                  Cancelar Edição
+                </button>
+              )}
             </form>
           </div>
         </section>
@@ -156,33 +203,74 @@ export default function Dashboard({ user }: HomeProps) {
 
           {tasks.map((item) => (
             <article key={item.id} className={styles.task}>
-              {item.public && (
-                <div className={styles.tagContainer}>
-                  <label className={styles.tag}>PÚBLICO</label>
-                  <button
-                    className={styles.shareButton}
-                    onClick={() => handleShare(item.id)}
-                  >
-                    <FiShare2 size={22} color="#3183ff" />
-                  </button>
-                </div>
-              )}
-
-              <div className={styles.taskContent}>
-                {item.public ? (
-                  <Link href={`/task/${item.id}`}>
-                    <p>{item.tarefa}</p>
-                  </Link>
-                ) : (
-                  <p>{item.tarefa}</p>
+              <div className={styles.tagContainer}>
+                {item.public && (
+                  <>
+                    <label className={styles.tag}>PÚBLICO</label>
+                    <button
+                      className={styles.shareButton}
+                      onClick={() => handleShare(item.id)}
+                    >
+                      <FiShare2 size={22} color="#3183ff" />
+                    </button>
+                  </>
                 )}
 
+                {/* Botão de Checkbox para Marcar como Lida */}
                 <button
-                  className={styles.trashButton}
-                  onClick={() => handleDeleteTask(item.id)}
+                  style={{
+                    background: "transparent",
+                    border: 0,
+                    marginLeft: 10,
+                    cursor: "pointer",
+                  }}
+                  onClick={() =>
+                    handleToggleComplete(item.id, !!item.completed)
+                  }
                 >
-                  <FaTrash size={24} color="#ea3140" />
+                  <FaCheckCircle
+                    size={22}
+                    color={item.completed ? "#2ecc71" : "#CCC"}
+                  />
                 </button>
+              </div>
+
+              <div className={styles.taskContent}>
+                <div
+                  style={{
+                    textDecoration: item.completed ? "line-through" : "none",
+                    opacity: item.completed ? 0.6 : 1,
+                    flex: 1,
+                  }}
+                >
+                  {item.public ? (
+                    <Link href={`/task/${item.id}`}>
+                      <p>{item.tarefa}</p>
+                    </Link>
+                  ) : (
+                    <p>{item.tarefa}</p>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", gap: "15px" }}>
+                  <button
+                    style={{
+                      background: "transparent",
+                      border: 0,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => handleEdit(item)}
+                  >
+                    <FaEdit size={24} color="#3183ff" />
+                  </button>
+
+                  <button
+                    className={styles.trashButton}
+                    onClick={() => handleDeleteTask(item.id)}
+                  >
+                    <FaTrash size={24} color="#ea3140" />
+                  </button>
+                </div>
               </div>
             </article>
           ))}
