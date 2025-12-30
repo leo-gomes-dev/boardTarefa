@@ -32,7 +32,7 @@ export function Header() {
               Painel
             </Link>
           )}
-          {session?.user && isDashboardPage && (
+          {session?.user && !isOnAdminPage && isDashboardPage && (
             <Link href="/" className={styles.link}>
               Início
             </Link>
