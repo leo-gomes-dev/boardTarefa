@@ -48,7 +48,7 @@ export default function Dashboard({ user }: HomeProps) {
   const [publicTask, setPublicTask] = useState(false);
   const [tasks, setTasks] = useState<TaskProps[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [priority, setPriority] = useState("low");
+  const [priority, setPriority] = useState("baixa");
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
