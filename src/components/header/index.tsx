@@ -43,7 +43,7 @@ export function Header() {
 
         <span className={styles.loginButton}>
           {" "}
-          {status === "loading" && "Carregando..."}
+          {status === "loading" ? "Carregando..." : <></>}
         </span>
 
         <button
