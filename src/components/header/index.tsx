@@ -43,18 +43,14 @@ export function Header() {
 
         <span className={styles.loginButton}>
           {" "}
-          {status === "loading"
-            ? "Carregando..."
-            : session
-            ? `Olá ${session?.user?.name}`
-            : "Seja Bem vindo(a)"}
+          {status === "loading" && "Carregando..."}
         </span>
 
         <button
           className={styles.loginButton}
           onClick={() => (session ? signOut() : signIn("google"))}
         >
-          {session ? "Sair" : "Acessar"}
+          {session ? `Olá ${session?.user?.name}` : "Sair"}
         </button>
       </section>
     </header>
