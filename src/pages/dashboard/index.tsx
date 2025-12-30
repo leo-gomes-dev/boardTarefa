@@ -1,6 +1,6 @@
 import { GetServerSideProps } from "next";
 import { ChangeEvent, FormEvent, useState, useEffect } from "react";
-import styles from "./npm udix styles.module.css";
+import styles from "./styles.module.css";
 import Head from "next/head";
 
 import { getSession } from "next-auth/react";
