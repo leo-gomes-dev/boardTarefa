@@ -1,7 +1,7 @@
 import styles from "./styles.module.css";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/router"; 
+import { useRouter } from "next/router";
 
 export function Header() {
   const { data: session, status } = useSession();
@@ -12,20 +12,19 @@ export function Header() {
   const allowedAdminEmails = [
     "leogomdesenvolvimento@gmail.com",
     "azulcargov@gmail.com",
-    "leogomecommerce@gmail.com"
+    "leogomecommerce@gmail.com",
   ];
 
   // Verificar se o usuário está logado e se o e-mail está na lista
-  const isAdminUser = session?.user?.email && allowedAdminEmails.includes(session.user.email);
+  const isAdminUser =
+    session?.user?.email && allowedAdminEmails.includes(session.user.email);
 
   return (
     <header className={styles.header}>
       <section className={styles.content}>
         <nav className={styles.nav}>
           <Link href="/">
-            <h1 className={styles.logo}>
-              Leo App
-            </h1>
+            <h1 className={styles.logo}>Tasks</h1>
           </Link>
           {session?.user && (
             <Link href="/dashboard" className={styles.link}>

@@ -3,25 +3,22 @@ import Head from "next/head";
 import styles from "../../styles/home.module.css";
 import Image from "next/image";
 
-import heroImg from "../../public/assets/hero.png";
+import tarefaImg from "../../public/assets/tarefas.png";
 
-import { db } from '../services/firebaseConnection';
+import { db } from "../services/firebaseConnection";
 
-import {
-  collection,
-  getDocs,
-} from 'firebase/firestore';
+import { collection, getDocs } from "firebase/firestore";
 
 interface HomeProps {
   posts: number;
   comments: number;
 }
 
-export default function Home({ posts, comments }: HomeProps) {
+export default function Home({ posts }: HomeProps) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Leogom App+ | Organizador de tarefas</title>
+        <title>Leo Gomes | Organizador de tarefas</title>
       </Head>
 
       <main className={styles.main}>
@@ -29,41 +26,41 @@ export default function Home({ posts, comments }: HomeProps) {
           <Image
             className={styles.hero}
             alt="Logo Tarefas+"
-            src={heroImg}
+            src={tarefaImg}
             priority
           />
         </div>
         <h1 className={styles.title}>
-          Sistema feito para organizar <br />
-          tarefas na Azul cargo
+          Sistema feito para você se organizar <br />
+          de forma simples.
         </h1>
 
         <div className={styles.infoContent}>
           <section className={styles.box}>
             <span>+{posts} posts</span>
           </section>
-          <section className={styles.box}>
+          {/* <section className={styles.box}>
             <span>+{comments} comentários</span>
-          </section>
+          </section> */}
         </div>
       </main>
+      <footer className={styles.footer}>By Leo Gomes Developer</footer>
     </div>
   );
 }
 
-export const getStaticProps: GetStaticProps = async ()=> {
+export const getStaticProps: GetStaticProps = async () => {
+  const commentRef = collection(db, "comments");
+  const postRef = collection(db, "tarefas");
 
-  const commentRef = collection(db, "comments")
-  const postRef = collection(db, "tarefas")
+  const commentSnapshot = await getDocs(commentRef);
+  const postSnapshot = await getDocs(postRef);
 
-  const commentSnapshot = await getDocs(commentRef)
-  const postSnapshot = await getDocs(postRef)
- 
   return {
     props: {
       posts: postSnapshot.size || 0,
-      comments: commentSnapshot.size || 0
+      comments: commentSnapshot.size || 0,
     },
-    revalidate: 60 //revalidado a cada 60 segundos.
-  }
-}
+    revalidate: 60, //revalidado a cada 60 segundos.
+  };
+};

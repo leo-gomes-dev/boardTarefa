@@ -1,6 +1,6 @@
 import { GetServerSideProps } from "next";
 import { ChangeEvent, FormEvent, useState, useEffect } from "react";
-import styles from "./styles.module.css";
+import styles from "./npm udix styles.module.css";
 import Head from "next/head";
 
 import { getSession } from "next-auth/react";
@@ -23,8 +23,8 @@ import {
 import Link from "next/link";
 
 // biblioteca de Toast "mensagens"
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface HomeProps {
   user: {
@@ -110,9 +110,9 @@ export default function Dashboard({ user }: HomeProps) {
     const docRef = doc(db, "tarefas", id);
 
     await deleteDoc(docRef);
-    
+
     // Exibindo o Toast de sucesso
-    toast.success('Tarefa deletada com sucesso!');
+    toast.success("Tarefa deletada com sucesso!");
   };
 
   return (
