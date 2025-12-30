@@ -246,7 +246,9 @@ export default function Dashboard({ user }: HomeProps) {
               />
 
               <div className={styles.priorityArea} style={{ margin: "15px 0" }}>
-                <label style={{ marginRight: 10, fontWeight: "bold" }}>
+                <label
+                  style={{ marginRight: 10, fontWeight: "bold", color: "#fff" }}
+                >
                   Prioridade:
                 </label>
                 <select
