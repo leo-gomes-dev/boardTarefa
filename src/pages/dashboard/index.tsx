@@ -3,7 +3,7 @@ import { ChangeEvent, FormEvent, useState, useEffect } from "react";
 import styles from "./styles.module.css";
 import Head from "next/head";
 
-import { getSession } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 import { Textarea } from "../../components/textarea";
 import { FiShare2 } from "react-icons/fi";
 import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa";
@@ -232,9 +232,34 @@ export default function Dashboard({ user }: HomeProps) {
       <main className={styles.main}>
         <section className={styles.content}>
           <div className={styles.contentForm}>
-            <h1 className={styles.title}>
-              {editingTaskId ? "Editando sua tarefa" : "Qual sua tarefa?"}
-            </h1>
+            {/* CONTAINER DO TÍTULO + BOTÃO SAIR */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "18px",
+              }}
+            >
+              <h1 className={styles.title} style={{ margin: 0 }}>
+                {editingTaskId ? "Editando sua tarefa" : "Qual sua tarefa?"}
+              </h1>
+
+              <button
+                onClick={() => signOut()}
+                style={{
+                  backgroundColor: "#ea3140",
+                  color: "#FFF",
+                  padding: "6px 16px",
+                  borderRadius: "4px",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Sair
+              </button>
+            </div>
 
             <form onSubmit={handleRegisterTask}>
               <Textarea
@@ -270,7 +295,7 @@ export default function Dashboard({ user }: HomeProps) {
                   checked={publicTask}
                   onChange={handleChangePublic}
                 />
-                <label>Deixar tarefa pública?</label>
+                <label style={{ color: "#fff" }}>Deixar tarefa pública?</label>
               </div>
 
               <button className={styles.button} type="submit">
@@ -297,6 +322,7 @@ export default function Dashboard({ user }: HomeProps) {
         </section>
 
         <section className={styles.taskContainer}>
+          {/* Filtros de Tarefas */}
           <div
             style={{
               display: "flex",
@@ -306,148 +332,124 @@ export default function Dashboard({ user }: HomeProps) {
             }}
           >
             <h1>Minhas tarefas</h1>
-
-            {/* Nova Seção de Filtros */}
-            <div
-              className={styles.filterGroup}
-              style={{ display: "flex", gap: "8px" }}
-            >
+            <div style={{ display: "flex", gap: "8px" }}>
               <button
-                onClick={() => setFilter("todas")}
+                onClick={() => setFilter("all")}
                 style={{
                   padding: "5px 12px",
                   borderRadius: "4px",
                   cursor: "pointer",
-                  border: "1px solid #ccc",
-                  backgroundColor: filter === "todas" ? "#3183ff" : "#fff",
-                  color: filter === "todas" ? "#fff" : "#000",
+                  backgroundColor: filter === "all" ? "#3183ff" : "#eee",
+                  color: filter === "all" ? "#fff" : "#000",
+                  border: "none",
                 }}
               >
-                {" "}
-                Todas{" "}
+                Todas
               </button>
               <button
-                onClick={() => setFilter("completas")}
+                onClick={() => setFilter("completed")}
                 style={{
                   padding: "5px 12px",
                   borderRadius: "4px",
                   cursor: "pointer",
-                  border: "1px solid #ccc",
-                  backgroundColor: filter === "completas" ? "#3183ff" : "#fff",
-                  color: filter === "completas" ? "#fff" : "#000",
+                  backgroundColor: filter === "completed" ? "#3183ff" : "#eee",
+                  color: filter === "completed" ? "#fff" : "#000",
+                  border: "none",
                 }}
               >
-                {" "}
-                Concluídas{" "}
+                Concluídas
               </button>
             </div>
           </div>
 
-          {tasks
-            .filter((item) => {
-              if (filter === "completas") return item.completed === true;
-              return true;
-            })
-            .sort((a, b) => {
-              const peso = { alta: 3, media: 2, baixa: 1 };
-              return (peso[b.priority] || 0) - (peso[a.priority] || 0);
-            })
-            .map((item) => (
-              <article key={item.id} className={styles.task}>
-                <div className={styles.tagContainer}>
-                  {/* Tag de Prioridade Visual */}
-                  <label
-                    className={styles.tag}
-                    style={{
-                      backgroundColor:
-                        item.priority === "alta"
-                          ? "#ea3140"
-                          : item.priority === "media"
-                          ? "#f1c40f"
-                          : "#3183ff",
-                      marginRight: 8,
-                    }}
-                  >
-                    {item.priority?.toUpperCase() || "BAIXA"}
-                  </label>
+          {filteredTasks.map((item) => (
+            <article key={item.id} className={styles.task}>
+              <div className={styles.tagContainer}>
+                <label
+                  className={styles.tag}
+                  style={{
+                    backgroundColor:
+                      item.priority === "alta"
+                        ? "#ea3140"
+                        : item.priority === "media"
+                        ? "#f1c40f"
+                        : "#3183ff",
+                    marginRight: 8,
+                  }}
+                >
+                  {item.priority.toUpperCase()}
+                </label>
 
-                  {item.public && (
-                    <>
-                      <label
-                        className={styles.tag}
-                        style={{ backgroundColor: "#000" }}
-                      >
-                        PÚBLICO
-                      </label>
-                      <button
-                        className={styles.shareButton}
-                        onClick={() => handleShare(item.id)}
-                      >
-                        <FiShare2 size={22} color="#3183ff" />
-                      </button>
-                    </>
+                {item.public && (
+                  <>
+                    <label className={styles.tag}>PÚBLICO</label>
+                    <button
+                      className={styles.shareButton}
+                      onClick={() => handleShare(item.id)}
+                    >
+                      <FiShare2 size={22} color="#3183ff" />
+                    </button>
+                  </>
+                )}
+
+                <button
+                  style={{
+                    background: "transparent",
+                    border: 0,
+                    marginLeft: 10,
+                    cursor: "pointer",
+                  }}
+                  onClick={() =>
+                    handleToggleComplete(item.id, !!item.completed)
+                  }
+                >
+                  <FaCheckCircle
+                    size={22}
+                    color={item.completed ? "#2ecc71" : "#CCC"}
+                  />
+                </button>
+              </div>
+
+              <div className={styles.taskContent}>
+                <div
+                  style={{
+                    textDecoration: item.completed ? "line-through" : "none",
+                    opacity: item.completed ? 0.6 : 1,
+                    flex: 1,
+                  }}
+                >
+                  {item.public ? (
+                    <Link href={`/task/${item.id}`}>
+                      <p>{item.tarefa}</p>
+                    </Link>
+                  ) : (
+                    <p>{item.tarefa}</p>
                   )}
+                </div>
 
+                <div style={{ display: "flex", gap: "15px" }}>
                   <button
                     style={{
                       background: "transparent",
                       border: 0,
-                      marginLeft: 10,
                       cursor: "pointer",
                     }}
-                    onClick={() =>
-                      handleToggleComplete(item.id, !!item.completed)
-                    }
+                    onClick={() => handleEdit(item)}
                   >
-                    <FaCheckCircle
-                      size={22}
-                      color={item.completed ? "#2ecc71" : "#CCC"}
-                    />
+                    <FaEdit size={24} color="#3183ff" />
+                  </button>
+                  <button
+                    className={styles.trashButton}
+                    onClick={() => handleDeleteTask(item)}
+                  >
+                    <FaTrash size={24} color="#ea3140" />
                   </button>
                 </div>
-
-                <div className={styles.taskContent}>
-                  <div
-                    style={{
-                      textDecoration: item.completed ? "line-through" : "none",
-                      opacity: item.completed ? 0.6 : 1,
-                      flex: 1,
-                    }}
-                  >
-                    {item.public ? (
-                      <Link href={`/task/${item.id}`}>
-                        <p>{item.tarefa}</p>
-                      </Link>
-                    ) : (
-                      <p>{item.tarefa}</p>
-                    )}
-                  </div>
-
-                  <div style={{ display: "flex", gap: "15px" }}>
-                    <button
-                      style={{
-                        background: "transparent",
-                        border: 0,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => handleEdit(item)}
-                    >
-                      <FaEdit size={24} color="#3183ff" />
-                    </button>
-
-                    <button
-                      className={styles.trashButton}
-                      onClick={() => handleDeleteTask(item)}
-                    >
-                      <FaTrash size={24} color="#ea3140" />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
+              </div>
+            </article>
+          ))}
         </section>
       </main>
-
       <ToastContainer />
     </div>
   );
