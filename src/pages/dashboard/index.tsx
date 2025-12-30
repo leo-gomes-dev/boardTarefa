@@ -40,6 +40,7 @@ interface TaskProps {
   tarefa: string;
   user: string;
   completed?: boolean;
+  priority: "baixa" | "media" | "alta";
 }
 
 export default function Dashboard({ user }: HomeProps) {
@@ -47,6 +48,8 @@ export default function Dashboard({ user }: HomeProps) {
   const [publicTask, setPublicTask] = useState(false);
   const [tasks, setTasks] = useState<TaskProps[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [priority, setPriority] = useState("low");
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     async function loadTarefas() {
@@ -56,18 +59,21 @@ export default function Dashboard({ user }: HomeProps) {
         orderBy("created", "desc"),
         where("user", "==", user?.email)
       );
-
       onSnapshot(q, (snapshot) => {
         let lista = [] as TaskProps[];
 
         snapshot.forEach((doc) => {
+          const data = doc.data(); // Captura os dados para facilitar o acesso
+
           lista.push({
             id: doc.id,
-            tarefa: doc.data().tarefa,
-            created: doc.data().created,
-            user: doc.data().user,
-            public: doc.data().public,
-            completed: doc.data().completed || false,
+            tarefa: data.tarefa,
+            created: data.created,
+            user: data.user,
+            public: data.public,
+            completed: data.completed || false,
+            // ADICIONE A LINHA ABAIXO:
+            priority: data.priority || "baixa",
           });
         });
 
@@ -82,9 +88,10 @@ export default function Dashboard({ user }: HomeProps) {
     setPublicTask(event.target.checked);
   }
 
+  // Adicione este estado ao seu componente
+
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
-
     if (input === "") return;
 
     try {
@@ -93,6 +100,7 @@ export default function Dashboard({ user }: HomeProps) {
         await updateDoc(docRef, {
           tarefa: input,
           public: publicTask,
+          priority: priority, // Atualiza a prioridade ao editar
         });
         setEditingTaskId(null);
         toast.success("Tarefa atualizada!");
@@ -103,17 +111,38 @@ export default function Dashboard({ user }: HomeProps) {
           user: user?.email,
           public: publicTask,
           completed: false,
+          priority: priority, // Salva a prioridade selecionada
         });
         toast.success("Tarefa registrada!");
       }
-
       setInput("");
-      setPublicTask(false);
+      setPriority("low"); // Reseta para o padrão
     } catch (err) {
       console.log(err);
-      toast.error("Erro ao salvar tarefa.");
     }
   }
+
+  // Lógica de filtragem e classificação por prioridade
+  const filteredTasks = tasks
+    .filter((item) => {
+      if (filter === "completed") return item.completed === true;
+      if (filter === "pending") return item.completed === false;
+      return true; // "all"
+    })
+    .sort((a, b) => {
+      // Definimos explicitamente que as chaves são as strings permitidas
+      const pesos: { [key in "baixa" | "media" | "alta"]: number } = {
+        alta: 3,
+        media: 2,
+        baixa: 1,
+      };
+
+      // Usamos o operador de coalescência (??) para garantir um valor numérico caso venha vazio
+      const pesoA = pesos[a.priority as keyof typeof pesos] ?? 0;
+      const pesoB = pesos[b.priority as keyof typeof pesos] ?? 0;
+
+      return pesoB - pesoA;
+    });
 
   async function handleShare(id: string) {
     await navigator.clipboard.writeText(
@@ -125,6 +154,7 @@ export default function Dashboard({ user }: HomeProps) {
   function handleEdit(item: TaskProps) {
     setInput(item.tarefa);
     setPublicTask(item.public);
+    setPriority(item.priority || "baixa"); // Carrega a prioridade existente
     setEditingTaskId(item.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -214,6 +244,23 @@ export default function Dashboard({ user }: HomeProps) {
                   setInput(event.target.value)
                 }
               />
+
+              <div className={styles.priorityArea} style={{ margin: "15px 0" }}>
+                <label style={{ marginRight: 10, fontWeight: "bold" }}>
+                  Prioridade:
+                </label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  className={styles.selectPriority}
+                  style={{ padding: "5px", borderRadius: "4px" }}
+                >
+                  <option value="baixa">Baixa</option>
+                  <option value="media">Média</option>
+                  <option value="alta">Alta</option>
+                </select>
+              </div>
+
               <div className={styles.checkboxArea}>
                 <input
                   type="checkbox"
@@ -237,6 +284,7 @@ export default function Dashboard({ user }: HomeProps) {
                     setEditingTaskId(null);
                     setInput("");
                     setPublicTask(false);
+                    setPriority("baixa");
                   }}
                 >
                   Cancelar Edição
@@ -247,80 +295,154 @@ export default function Dashboard({ user }: HomeProps) {
         </section>
 
         <section className={styles.taskContainer}>
-          <h1>Minhas tarefas</h1>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 20,
+            }}
+          >
+            <h1>Minhas tarefas</h1>
 
-          {tasks.map((item) => (
-            <article key={item.id} className={styles.task}>
-              <div className={styles.tagContainer}>
-                {item.public && (
-                  <>
-                    <label className={styles.tag}>PÚBLICO</label>
-                    <button
-                      className={styles.shareButton}
-                      onClick={() => handleShare(item.id)}
-                    >
-                      <FiShare2 size={22} color="#3183ff" />
-                    </button>
-                  </>
-                )}
+            {/* Nova Seção de Filtros */}
+            <div
+              className={styles.filterGroup}
+              style={{ display: "flex", gap: "8px" }}
+            >
+              <button
+                onClick={() => setFilter("todas")}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  border: "1px solid #ccc",
+                  backgroundColor: filter === "todas" ? "#3183ff" : "#fff",
+                  color: filter === "todas" ? "#fff" : "#000",
+                }}
+              >
+                {" "}
+                Todas{" "}
+              </button>
+              <button
+                onClick={() => setFilter("completas")}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  border: "1px solid #ccc",
+                  backgroundColor: filter === "completas" ? "#3183ff" : "#fff",
+                  color: filter === "completas" ? "#fff" : "#000",
+                }}
+              >
+                {" "}
+                Concluídas{" "}
+              </button>
+            </div>
+          </div>
 
-                <button
-                  style={{
-                    background: "transparent",
-                    border: 0,
-                    marginLeft: 10,
-                    cursor: "pointer",
-                  }}
-                  onClick={() =>
-                    handleToggleComplete(item.id, !!item.completed)
-                  }
-                >
-                  <FaCheckCircle
-                    size={22}
-                    color={item.completed ? "#2ecc71" : "#CCC"}
-                  />
-                </button>
-              </div>
+          {tasks
+            .filter((item) => {
+              if (filter === "completas") return item.completed === true;
+              return true;
+            })
+            .sort((a, b) => {
+              const peso = { alta: 3, media: 2, baixa: 1 };
+              return (peso[b.priority] || 0) - (peso[a.priority] || 0);
+            })
+            .map((item) => (
+              <article key={item.id} className={styles.task}>
+                <div className={styles.tagContainer}>
+                  {/* Tag de Prioridade Visual */}
+                  <label
+                    className={styles.tag}
+                    style={{
+                      backgroundColor:
+                        item.priority === "alta"
+                          ? "#ea3140"
+                          : item.priority === "media"
+                          ? "#f1c40f"
+                          : "#3183ff",
+                      marginRight: 8,
+                    }}
+                  >
+                    {item.priority?.toUpperCase() || "BAIXA"}
+                  </label>
 
-              <div className={styles.taskContent}>
-                <div
-                  style={{
-                    textDecoration: item.completed ? "line-through" : "none",
-                    opacity: item.completed ? 0.6 : 1,
-                    flex: 1,
-                  }}
-                >
-                  {item.public ? (
-                    <Link href={`/task/${item.id}`}>
-                      <p>{item.tarefa}</p>
-                    </Link>
-                  ) : (
-                    <p>{item.tarefa}</p>
+                  {item.public && (
+                    <>
+                      <label
+                        className={styles.tag}
+                        style={{ backgroundColor: "#000" }}
+                      >
+                        PÚBLICO
+                      </label>
+                      <button
+                        className={styles.shareButton}
+                        onClick={() => handleShare(item.id)}
+                      >
+                        <FiShare2 size={22} color="#3183ff" />
+                      </button>
+                    </>
                   )}
-                </div>
 
-                <div style={{ display: "flex", gap: "15px" }}>
                   <button
                     style={{
                       background: "transparent",
                       border: 0,
+                      marginLeft: 10,
                       cursor: "pointer",
                     }}
-                    onClick={() => handleEdit(item)}
+                    onClick={() =>
+                      handleToggleComplete(item.id, !!item.completed)
+                    }
                   >
-                    <FaEdit size={24} color="#3183ff" />
-                  </button>
-
-                  <button
-                    className={styles.trashButton}
-                    onClick={() => handleDeleteTask(item)}
-                  >
-                    <FaTrash size={24} color="#ea3140" />
+                    <FaCheckCircle
+                      size={22}
+                      color={item.completed ? "#2ecc71" : "#CCC"}
+                    />
                   </button>
                 </div>
-              </div>
-            </article>
-          ))}
+
+                <div className={styles.taskContent}>
+                  <div
+                    style={{
+                      textDecoration: item.completed ? "line-through" : "none",
+                      opacity: item.completed ? 0.6 : 1,
+                      flex: 1,
+                    }}
+                  >
+                    {item.public ? (
+                      <Link href={`/task/${item.id}`}>
+                        <p>{item.tarefa}</p>
+                      </Link>
+                    ) : (
+                      <p>{item.tarefa}</p>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: "15px" }}>
+                    <button
+                      style={{
+                        background: "transparent",
+                        border: 0,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => handleEdit(item)}
+                    >
+                      <FaEdit size={24} color="#3183ff" />
+                    </button>
+
+                    <button
+                      className={styles.trashButton}
+                      onClick={() => handleDeleteTask(item)}
+                    >
+                      <FaTrash size={24} color="#ea3140" />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
         </section>
       </main>
 

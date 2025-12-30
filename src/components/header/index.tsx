@@ -11,7 +11,7 @@ export function Header() {
   // Lista de e-mails permitidos para acesso à página admin
   const allowedAdminEmails = [
     "leogomdesenvolvimento@gmail.com",
-    "azulcargov@gmail.com",
+    "leogomesdeveloper@gmail.com",
     "leogomecommerce@gmail.com",
   ];
 
@@ -40,20 +40,21 @@ export function Header() {
           )}
         </nav>
 
-        {status === "loading" ? (
-          <></>
-        ) : session ? (
-          <button className={styles.loginButton} onClick={() => signOut()}>
-            Olá {session?.user?.name}
-          </button>
-        ) : (
-          <button
-            className={styles.loginButton}
-            onClick={() => signIn("google")}
-          >
-            Acessar
-          </button>
-        )}
+        <span className={styles.loginButton}>
+          {" "}
+          {status === "loading"
+            ? "Carregando..."
+            : session
+            ? `Olá ${session?.user?.name}`
+            : "Seja Bem vindo(a)"}
+        </span>
+
+        <button
+          className={styles.loginButton}
+          onClick={() => (session ? signOut() : signIn("google"))}
+        >
+          {session ? "Sair" : "Acessar"}
+        </button>
       </section>
     </header>
   );
