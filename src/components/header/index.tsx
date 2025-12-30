@@ -32,11 +32,6 @@ export function Header() {
               Painel
             </Link>
           )}
-          {session?.user && !isOnAdminPage && isDashboardPage && (
-            <Link href="/" className={styles.link}>
-              Início
-            </Link>
-          )}
 
           {/* Verificar se o usuário está na lista de e-mails permitidos para exibir o link "Admin" */}
           {!isOnAdminPage && isAdminUser && (
