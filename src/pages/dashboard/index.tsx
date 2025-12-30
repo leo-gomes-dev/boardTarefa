@@ -331,7 +331,7 @@ export default function Dashboard({ user }: HomeProps) {
               marginBottom: 20,
             }}
           >
-            <h1>Minhas tarefas</h1>
+            <h1>Tarefas</h1>
             <div style={{ display: "flex", gap: "8px" }}>
               <button
                 onClick={() => setFilter("all")}
