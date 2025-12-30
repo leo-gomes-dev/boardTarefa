@@ -14,7 +14,7 @@ interface HomeProps {
   comments: number;
 }
 
-export default function Home({ posts }: HomeProps) {
+export default function Home({ posts, comments }: HomeProps) {
   return (
     <div className={styles.container}>
       <Head>
@@ -40,9 +40,9 @@ export default function Home({ posts }: HomeProps) {
           <section className={styles.box}>
             <span>+{posts} posts</span>
           </section>
-          {/* <section className={styles.box}>
+          <section className={styles.box}>
             <span>+{comments} comentários</span>
-          </section> */}
+          </section>
         </div>
       </main>
       <footer className={styles.footer}>By Leo Gomes Developer</footer>
