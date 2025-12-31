@@ -19,85 +19,59 @@
 
 .loginCard {
   background: rgba(26, 26, 26, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 50px 40px;
-  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 60px 40px;
+  border-radius: 20px;
   width: 100%;
-  max-width: 450px;
+  max-width: 420px;
   text-align: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .header h1 {
-  font-size: 2rem;
+  font-size: 1.8rem;
   color: #fff;
-  margin: 20px 0 10px;
+  margin: 24px 0 12px;
+  font-weight: 700;
 }
 
 .header p {
   color: #94a3b8;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  font-size: 1rem;
+  line-height: 1.6;
   margin-bottom: 40px;
 }
 
 .buttonArea {
   display: flex;
   flex-direction: column;
-  gap: 15px;
 }
 
-.googleButton,
-.githubButton {
+.googleButton {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 14px;
-  border-radius: 8px;
+  padding: 16px;
+  border-radius: 12px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.1rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   border: none;
-}
-
-.googleButton {
   background-color: #fff;
   color: #000;
 }
 
 .googleButton:hover {
-  background-color: #f1f1f1;
-  transform: translateY(-2px);
-}
-
-.githubButton {
-  background-color: #24292e;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.githubButton:hover {
-  background-color: #2f363d;
-  transform: translateY(-2px);
+  background-color: #f8f9fa;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
 }
 
 .footerText {
   margin-top: 40px;
-  color: #64748b;
-  font-size: 0.8rem;
-}
-
-.footerText span {
-  color: #3183ff;
-  cursor: pointer;
-}
-
-/* Responsividade */
-@media (max-width: 480px) {
-  .loginCard {
-    padding: 40px 20px;
-  }
+  color: #475569;
+  font-size: 0.85rem;
 }

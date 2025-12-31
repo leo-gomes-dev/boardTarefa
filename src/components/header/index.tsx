@@ -7,14 +7,13 @@ export function Header() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const isHomePage = router.pathname === "/"; // Identifica a Home
   const isOnAdminPage = router.pathname === "/admin";
   const isDashboardPage = router.pathname === "/dashboard";
 
-  // NOVA CONSTANTE: Verifica se está na página de oferta ou checkout
   const isSalesPage =
     router.pathname === "/premium" || router.pathname === "/pagamento";
 
-  // Lista de e-mails permitidos para acesso à página admin
   const allowedAdminEmails = [
     "leogomdesenvolvimento@gmail.com",
     "leogomesdeveloper@gmail.com",
@@ -32,22 +31,12 @@ export function Header() {
             <h1 className={styles.logo}>Tasks</h1>
           </Link>
 
-          {/* SÓ MOSTRA O LINK PAINEL SE:
-              1. Tiver sessão
-              2. NÃO estiver na Dashboard
-              3. NÃO estiver em páginas de venda (Premium/Pagamento) 
-          */}
           {session?.user && !isDashboardPage && !isSalesPage && (
             <Link href="/dashboard" className={styles.link}>
               Painel
             </Link>
           )}
 
-          {/* SÓ MOSTRA O LINK ADMIN SE:
-              1. NÃO estiver na página Admin
-              2. For um usuário Admin
-              3. NÃO estiver em páginas de venda (Premium/Pagamento)
-          */}
           {!isOnAdminPage && isAdminUser && !isSalesPage && (
             <Link href="/admin" className={styles.link}>
               Admin
@@ -55,12 +44,19 @@ export function Header() {
           )}
         </nav>
 
-        <button
-          className={styles.loginButton}
-          onClick={() => (session ? signOut() : signIn("google"))}
-        >
-          {session ? `Olá ${session?.user?.name}` : "Acessar"}
-        </button>
+        {/* 
+            LÓGICA DE UX 2026: 
+            O botão só aparece se NÃO estiver na Home OU se o usuário já estiver logado.
+            Se estiver na Home e deslogado, ele usa o botão central da página para entrar.
+        */}
+        {(!isHomePage || session) && (
+          <button
+            className={styles.loginButton}
+            onClick={() => (session ? signOut() : signIn("google"))}
+          >
+            {session ? `Olá ${session?.user?.name?.split(" ")[0]}` : "Acessar"}
+          </button>
+        )}
       </section>
     </header>
   );
