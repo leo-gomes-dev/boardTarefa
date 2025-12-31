@@ -11,11 +11,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // O Mercado Pago sempre envia via POST
   if (req.method === "POST") {
-    // O Mercado Pago envia o tipo de ação e o ID no query ou no body
     const { action, data } = req.body;
 
-    // Verificamos se é uma notificação de pagamento criado/atualizado
+    console.log(`[WEBHOOK RECEBIDO]: Ação: ${action} | ID: ${data?.id}`);
+
+    // Verificamos se é uma notificação de pagamento
     if (action === "payment.created" || action === "payment.updated") {
       const paymentId = data.id;
 
@@ -23,9 +25,12 @@ export default async function handler(
         // Consultar os detalhes do pagamento no Mercado Pago
         const payment = await new Payment(client).get({ id: paymentId });
 
+        console.log(
+          `[STATUS PAGAMENTO]: ${payment.status} para o ID: ${paymentId}`
+        );
+
         // Verificamos se o status é 'approved' (aprovado)
         if (payment.status === "approved") {
-          // No Mercado Pago, os metadados ficam em payment.metadata
           const userEmail = payment.metadata?.email;
           const planoNome = payment.metadata?.plano;
 
@@ -43,29 +48,28 @@ export default async function handler(
                 dataAssinatura: new Date(),
                 dataExpiracao: dataExpiracao,
                 updatedAt: new Date(),
-                paymentId: paymentId, // Referência do MP
+                paymentId: paymentId,
               },
               { merge: true }
             );
 
             console.log(
-              `Usuário ${userEmail} atualizado para Premium via Mercado Pago.`
+              `[SUCESSO]: Usuário ${userEmail} atualizado para Premium.`
             );
           }
         }
       } catch (error: any) {
-        console.error(
-          "Erro ao processar Webhook do Mercado Pago:",
-          error.message
-        );
-        return res.status(500).json({ error: "Internal Server Error" });
+        console.error("[ERRO WEBHOOK]:", error.message);
+        // Respondemos 200 mesmo em erro de lógica para o MP não ficar tentando reenviar
+        return res.status(200).json({ error: "Erro interno mas recebido" });
       }
     }
 
-    // O Mercado Pago exige resposta 200 ou 201 para confirmar o recebimento
-    res.status(200).json({ received: true });
+    // Resposta obrigatória 200 ou 201 para o Mercado Pago
+    return res.status(200).json({ received: true });
   } else {
+    // Caso alguém tente acessar via GET, retorna 405
     res.setHeader("Allow", "POST");
-    res.status(405).end("Method Not Allowed");
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
