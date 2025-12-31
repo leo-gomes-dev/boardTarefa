@@ -22,7 +22,6 @@ import {
   deleteDoc,
   updateDoc,
   getDoc,
-  setDoc, // Importante para salvar sem erro
 } from "firebase/firestore";
 import Link from "next/link";
 
@@ -126,7 +125,7 @@ export default function Dashboard({ user }: HomeProps) {
         await addDoc(collection(db, "tarefas"), {
           tarefa: input,
           created: new Date(),
-          user: user?.email,
+          user: user.email, // Garantindo o e-mail exato para as regras do Firebase
           public: publicTask,
           completed: false,
           priority: priority,
@@ -139,9 +138,7 @@ export default function Dashboard({ user }: HomeProps) {
       setPriority("baixa");
     } catch (err) {
       console.error(err);
-      toast.error(
-        "Erro ao salvar no banco. Verifique as permissões do Firebase."
-      );
+      toast.error("Erro ao salvar: Verifique sua conexão ou permissões.");
     }
   }
 
@@ -228,12 +225,11 @@ export default function Dashboard({ user }: HomeProps) {
                 }
               />
 
-              {/* Prioridade em cima, Checkbox Pública embaixo */}
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "12px",
+                  gap: "15px",
                   marginTop: "15px",
                 }}
               >
