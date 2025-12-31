@@ -16,6 +16,7 @@ import {
   FaCrown,
   FaUser,
 } from "react-icons/fa";
+import { useRouter } from "next/router";
 
 interface PremiumProps {
   configs: {
@@ -31,16 +32,29 @@ interface PremiumProps {
 export default function Premium({ configs }: PremiumProps) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleCheckout(plano: string, valor: string) {
+    // 1. LÓGICA PARA USUÁRIO DESLOGADO
     if (!session) {
-      toast.info("Redirecionando para login...", { theme: "dark" });
+      toast.info("Faça login para continuar com sua assinatura.", {
+        theme: "dark",
+      });
+
+      // O segredo está aqui: salvamos o callbackUrl para ele voltar para cá após o login
       setTimeout(() => {
-        signIn();
+        signIn("google", { callbackUrl: "/premium" });
       }, 1000);
       return;
     }
 
+    // 2. LÓGICA PARA PLANO FREE (LOGADO)
+    if (plano === "Basic Free") {
+      router.push("/dashboard");
+      return;
+    }
+
+    // 3. LÓGICA MERCADO PAGO (LOGADO)
     setLoading(true);
     try {
       const response = await fetch("/api/checkout", {
@@ -52,11 +66,17 @@ export default function Premium({ configs }: PremiumProps) {
           email: session.user?.email,
         }),
       });
+
       const data = await response.json();
-      if (data.url) window.location.href = data.url;
-      else throw new Error();
+      if (data.url) {
+        window.location.href = data.url; // Redireciona para o Mercado Pago
+      } else {
+        throw new Error();
+      }
     } catch {
-      toast.error("Erro ao processar checkout.", { theme: "dark" });
+      toast.error("Erro ao gerar pagamento. Tente novamente.", {
+        theme: "dark",
+      });
     } finally {
       setLoading(false);
     }
@@ -65,79 +85,59 @@ export default function Premium({ configs }: PremiumProps) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Planos e Preços - OrganizaTask</title>
+        <title>Planos e Acesso - OrganizaTask</title>
       </Head>
       <main className={styles.main}>
         <section className={styles.header}>
           <FaRocket size={50} color="#3183ff" />
           <h1>
-            {session
-              ? `Olá, ${session.user?.name}!`
-              : "Escolha seu plano para começar"}
+            {session ? `Olá, ${session.user?.name}!` : "Escolha seu plano"}
           </h1>
-          <p>
-            Potencialize sua produtividade com as melhores ferramentas de 2026.
-          </p>
+          <p>O primeiro passo para uma rotina de alta performance em 2026.</p>
         </section>
 
         <div className={styles.plansArea}>
-          {/* PLANO BASIC */}
+          {/* FREE */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaUser size={30} color="#94a3b8" />
               <span>INDIVIDUAL</span>
               <h2>Free Starter</h2>
-              <div className={styles.price}>
-                <span className={styles.currency}>R$</span>
-                <span className={styles.amount}>{configs.basicValor}</span>
-              </div>
-              <p className={styles.totalPrice}>{configs.basicDesc}</p>
+              <div className={styles.price}>R$ {configs.basicValor}</div>
+              <p>{configs.basicDesc}</p>
             </div>
             <ul className={styles.features}>
               <li>
-                <FaCheckCircle color="#2ecc71" /> Até 10 tarefas ativas
+                <FaCheckCircle color="#2ecc71" /> 10 tarefas ativas
               </li>
               <li>
                 <FaCheckCircle color="#2ecc71" /> Histórico de 7 dias
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Acesso Multi-plataforma
               </li>
             </ul>
             <button
               onClick={() => handleCheckout("Basic Free", configs.basicValor)}
               className={`${styles.buyButton} ${styles.outline}`}
             >
-              {session ? "ACESSAR GRATUITO" : "LOGAR PARA ACESSAR"}
+              {session ? "ACESSAR AGORA" : "LOGAR PARA ACESSAR"}
             </button>
           </div>
 
-          {/* PLANO ANUAL */}
+          {/* ANUAL */}
           <div className={`${styles.card} ${styles.recommended}`}>
             <div className={styles.badge}>MAIS RECOMENDADO</div>
             <div className={styles.cardHeader}>
               <FaStar size={30} color="#f1c40f" />
-              <span>ASSINATURA ANUAL</span>
+              <span>PREMIUM</span>
               <h2>Premium Plus</h2>
-              <div className={styles.price}>
-                <span className={styles.currency}>R$</span>
-                <span className={styles.amount}>{configs.anualValor}</span>
-              </div>
-              <p className={styles.totalPrice}>{configs.anualDesc}</p>
+              <div className={styles.price}>R$ {configs.anualValor}</div>
+              <p>{configs.anualDesc}</p>
             </div>
             <ul className={styles.features}>
               <li>
-                <FaCheckCircle color="#2ecc71" /> <FaInfinity /> Tarefas
-                ilimitadas
+                <FaCheckCircle color="#2ecc71" /> Tarefas ilimitadas
               </li>
               <li>
                 <FaCheckCircle color="#2ecc71" /> Suporte Prioritário
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Dashboard de Performance
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Sem anúncios
               </li>
             </ul>
             <button
@@ -147,34 +147,25 @@ export default function Premium({ configs }: PremiumProps) {
               disabled={loading}
               className={styles.buyButton}
             >
-              {loading ? "CARREGANDO..." : "ASSINAR AGORA"}
+              {loading ? "PROCESSANDO..." : "ASSINAR AGORA"}
             </button>
           </div>
 
-          {/* PLANO TRIENAL */}
+          {/* TRIENAL */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaCrown size={30} color="#e74c3c" />
-              <span>36 MESES</span>
+              <span>PROFISSIONAL</span>
               <h2>Professional Max</h2>
-              <div className={styles.price}>
-                <span className={styles.currency}>R$</span>
-                <span className={styles.amount}>{configs.trienalValor}</span>
-              </div>
-              <p className={styles.totalPrice}>{configs.trienalDesc}</p>
+              <div className={styles.price}>R$ {configs.trienalValor}</div>
+              <p>{configs.trienalDesc}</p>
             </div>
             <ul className={styles.features}>
               <li>
-                <FaCheckCircle color="#2ecc71" /> Tudo do Plano Anual
+                <FaCheckCircle color="#2ecc71" /> Tudo do Anual
               </li>
               <li>
-                <FaCheckCircle color="#2ecc71" /> Suporte VIP WhatsApp 24/7
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Consultoria de Organização
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> 1 Ano de economia real
+                <FaCheckCircle color="#2ecc71" /> Suporte VIP WhatsApp
               </li>
             </ul>
             <button
@@ -184,17 +175,17 @@ export default function Premium({ configs }: PremiumProps) {
               disabled={loading}
               className={`${styles.buyButton} ${styles.darkButton}`}
             >
-              {loading ? "CARREGANDO..." : "GARANTIR DESCONTO"}
+              {loading ? "PROCESSANDO..." : "GARANTIR ACESSO MAX"}
             </button>
           </div>
         </div>
 
         <div className={styles.secure}>
           <FaShieldAlt size={14} />
-          <span>Pagamento Seguro via Mercado Pago</span>
+          <span>Checkout Seguro via Mercado Pago</span>
         </div>
       </main>
-      <ToastContainer position="bottom-right" autoClose={5000} theme="dark" />
+      <ToastContainer theme="dark" />
     </div>
   );
 }
@@ -206,7 +197,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
   let configs = {
     basicValor: "0,00",
-    basicDesc: "Essencial para o dia a dia",
+    basicDesc: "Essencial para começar",
     anualValor: "118,80",
     anualDesc: "Apenas R$ 9,90 por mês",
     trienalValor: "284,40",
