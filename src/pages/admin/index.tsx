@@ -27,7 +27,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// NOVOS IMPORTS PARA UI/UX
+// UI/UX
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 
@@ -49,11 +49,11 @@ export default function Admin({ user }: HomeProps) {
   const [input, setInput] = useState("");
   const [publicTask, setPublicTask] = useState(false);
   const [tasks, setTasks] = useState<TaskProps[]>([]);
-  const [isPremium, setIsPremium] = useState(false); // Estado para o Plano
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     async function loadTarefas() {
-      // 1. Verifica se o usuário é Premium no Firebase
+      // 1. Verifica status do plano no Firebase
       const userRef = doc(db, "users", user.email);
       const userSnap = await getDoc(userRef);
 
@@ -61,12 +61,12 @@ export default function Admin({ user }: HomeProps) {
         setIsPremium(true);
       }
 
-      // 2. Carrega as tarefas do usuário logado
+      // 2. Carrega tarefas em tempo real filtradas pelo usuário logado
       const tarefasRef = collection(db, "tarefas");
       const q = query(
         tarefasRef,
         orderBy("created", "desc"),
-        where("user", "==", user.email) // Filtra para mostrar apenas as do usuário
+        where("user", "==", user.email)
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -103,11 +103,10 @@ export default function Admin({ user }: HomeProps) {
       return;
     }
 
-    // LÓGICA DE BLOQUEIO 2026:
-    // Se NÃO for premium e já tiver 30 ou mais tarefas, bloqueia.
+    // Bloqueio para usuários Free (limite de 30)
     if (!isPremium && tasks.length >= 30) {
       toast.error(
-        "Limite de 30 tarefas atingido! Faça upgrade para o Plano Premium."
+        "Limite de 30 tarefas atingido! Faça upgrade para o Plano Premium para ter tarefas ilimitadas."
       );
       return;
     }
@@ -124,37 +123,35 @@ export default function Admin({ user }: HomeProps) {
       setPublicTask(false);
       toast.success("Tarefa registrada com sucesso!");
     } catch (err) {
-      console.log(err);
+      console.error(err);
       toast.error("Erro ao registrar tarefa.");
     }
   }
 
   async function handleShare(id: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/task/${id}`);
-    toast.info("URL copiada com sucesso!");
+    toast.info("URL da tarefa copiada!");
   }
 
   const handleDeleteTask = async (id: string) => {
     const result = await Swal.fire({
-      title: "Tem certeza?",
-      text: "Você não poderá reverter esta ação!",
+      title: "Deletar tarefa?",
+      text: "Esta ação não pode ser revertida!",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ea3140",
       cancelButtonColor: "#3183ff",
-      confirmButtonText: "Sim, deletar!",
+      confirmButtonText: "Sim, deletar",
       cancelButtonText: "Cancelar",
       background: "#121212",
       color: "#fff",
     });
 
     if (result.isConfirmed) {
-      const docRef = doc(db, "tarefas", id);
       try {
-        await deleteDoc(docRef);
-        toast.success("Tarefa deletada com sucesso!");
+        await deleteDoc(doc(db, "tarefas", id));
+        toast.success("Tarefa removida!");
       } catch (err) {
-        console.log("Erro ao deletar tarefa:", err);
         toast.error("Erro ao deletar tarefa.");
       }
     }
@@ -163,19 +160,19 @@ export default function Admin({ user }: HomeProps) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Meu painel de tarefas</title>
+        <title>Painel de Controle - OrganizaTask 2026</title>
       </Head>
 
       <main className={styles.main}>
         <section className={styles.content}>
           <div className={styles.contentForm}>
             <h1 className={styles.title}>
-              Qual sua tarefa, {isPremium ? "Premium 👑" : "Free"}?
+              Bem-vindo, {isPremium ? "Assinante Premium 👑" : "Usuário Free"}
             </h1>
 
             <form onSubmit={handleRegisterTask}>
               <Textarea
-                placeholder="Digite qual sua tarefa..."
+                placeholder="O que temos para hoje?"
                 value={input}
                 onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                   setInput(event.target.value)
@@ -189,7 +186,9 @@ export default function Admin({ user }: HomeProps) {
                   checked={publicTask}
                   onChange={handleChangePublic}
                 />
-                <label htmlFor="public_check">Deixar tarefa pública?</label>
+                <label htmlFor="public_check">
+                  Tornar esta tarefa pública?
+                </label>
               </div>
 
               <button
@@ -198,36 +197,38 @@ export default function Admin({ user }: HomeProps) {
                 disabled={!isPremium && tasks.length >= 30}
               >
                 {!isPremium && tasks.length >= 30
-                  ? "Limite Atingido"
-                  : "Registrar"}
+                  ? "Limite Atingido (30/30)"
+                  : "Registrar Tarefa"}
               </button>
             </form>
           </div>
         </section>
 
         <section className={styles.taskContainer}>
-          <h1>Minhas tarefas ({tasks.length})</h1>
+          <h1>Minhas Tarefas ({tasks.length})</h1>
 
           {tasks.length === 0 ? (
-            <p>Você ainda não tem tarefas registradas.</p>
+            <p className={styles.emptyText}>Nenhuma tarefa encontrada.</p>
           ) : (
             tasks.map((item) => (
               <article key={item.id} className={styles.task}>
                 <div className={styles.tagContainer}>
-                  {item.public && <label className={styles.tag}>PÚBLICO</label>}
+                  {item.public && <label className={styles.tag}>PÚBLICA</label>}
 
                   <div className={styles.taskActions}>
                     <button
                       className={styles.shareButton}
                       onClick={() => handleShare(item.id)}
+                      title="Compartilhar"
                     >
-                      <FiShare2 size={22} color="#3183ff" />
+                      <FiShare2 size={20} color="#3183ff" />
                     </button>
                     <button
                       className={styles.trashButton}
                       onClick={() => handleDeleteTask(item.id)}
+                      title="Excluir"
                     >
-                      <FaTrash size={22} color="#ea3140" />
+                      <FaTrash size={20} color="#ea3140" />
                     </button>
                   </div>
                 </div>
@@ -244,7 +245,7 @@ export default function Admin({ user }: HomeProps) {
 
                 <div className={styles.taskFooter}>
                   <span className={styles.createdAt}>
-                    Em:{" "}
+                    Registrada em:{" "}
                     {format(item.created, "dd/MM/yyyy 'às' HH:mm", {
                       locale: ptBR,
                     })}
@@ -262,6 +263,7 @@ export default function Admin({ user }: HomeProps) {
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
 
+  // Se não houver sessão, redireciona para a home
   if (!session?.user) {
     return {
       redirect: {
