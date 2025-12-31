@@ -22,7 +22,7 @@ import {
   deleteDoc,
   updateDoc,
   getDoc,
-  setDoc,
+  setDoc, // Importante para salvar sem erro
 } from "firebase/firestore";
 import Link from "next/link";
 
@@ -139,17 +139,44 @@ export default function Dashboard({ user }: HomeProps) {
       setPriority("baixa");
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao salvar no banco.");
+      toast.error(
+        "Erro ao salvar no banco. Verifique as permissões do Firebase."
+      );
     }
   }
 
-  // Funções de Deletar, Editar e Share simplificadas para o exemplo
   function handleEdit(item: TaskProps) {
     setInput(item.tarefa);
     setPriority(item.priority);
     setPublicTask(item.public);
     setEditingTaskId(item.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  async function handleToggleComplete(id: string, completed: boolean) {
+    const docRef = doc(db, "tarefas", id);
+    await updateDoc(docRef, { completed: !completed });
+  }
+
+  async function handleShare(id: string) {
+    await navigator.clipboard.writeText(`${window.location.origin}/task/${id}`);
+    toast.info("URL Copiada!");
+  }
+
+  const handleDeleteTask = async (task: TaskProps) => {
+    try {
+      await deleteDoc(doc(db, "tarefas", task.id));
+      toast.success("Tarefa removida!");
+    } catch (err) {
+      toast.error("Erro ao remover tarefa.");
+    }
+  };
+
+  const filteredTasks = tasks.filter((item) => {
+    if (filter === "completed") return item.completed === true;
+    if (filter === "pending") return item.completed === false;
+    return true;
+  });
 
   return (
     <div className={styles.container}>
@@ -160,7 +187,6 @@ export default function Dashboard({ user }: HomeProps) {
       <main className={styles.main}>
         <section className={styles.content}>
           <div className={styles.contentForm}>
-            {/* Cabeçalho com Título e Botão Config à Direita */}
             <div
               style={{
                 display: "flex",
@@ -188,7 +214,7 @@ export default function Dashboard({ user }: HomeProps) {
                     fontSize: "13px",
                   }}
                 >
-                  <FiSettings size={16} /> Config
+                  <FiSettings size={16} /> Configurações
                 </Link>
               )}
             </div>
@@ -202,12 +228,12 @@ export default function Dashboard({ user }: HomeProps) {
                 }
               />
 
-              {/* Alinhamento de Prioridade e Checkbox à esquerda */}
+              {/* Prioridade em cima, Checkbox Pública embaixo */}
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "15px",
+                  gap: "12px",
                   marginTop: "15px",
                 }}
               >
@@ -221,11 +247,12 @@ export default function Dashboard({ user }: HomeProps) {
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
                     style={{
-                      padding: "5px",
+                      padding: "8px",
                       borderRadius: "4px",
                       background: "#121212",
                       color: "#FFF",
                       border: "1px solid #333",
+                      cursor: "pointer",
                     }}
                   >
                     <option value="baixa">Baixa</option>
@@ -236,14 +263,21 @@ export default function Dashboard({ user }: HomeProps) {
 
                 <div
                   className={styles.checkboxArea}
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
                 >
                   <input
                     type="checkbox"
+                    id="public_check"
                     checked={publicTask}
                     onChange={(e) => setPublicTask(e.target.checked)}
+                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
                   />
-                  <span style={{ color: "#FFF" }}>Deixar tarefa pública?</span>
+                  <label
+                    htmlFor="public_check"
+                    style={{ color: "#FFF", cursor: "pointer" }}
+                  >
+                    Tornar tarefa pública?
+                  </label>
                 </div>
               </div>
 
@@ -258,18 +292,121 @@ export default function Dashboard({ user }: HomeProps) {
           </div>
         </section>
 
-        {/* Listagem de tarefas abaixo... */}
         <section className={styles.taskContainer}>
-          {/* O mapeamento das tarefas continua aqui como no seu código original */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "20px",
+            }}
+          >
+            <h1>Minhas tarefas</h1>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={{ padding: "5px", borderRadius: "4px" }}
+            >
+              <option value="all">Todas</option>
+              <option value="pending">Pendentes</option>
+              <option value="completed">Concluídas</option>
+            </select>
+          </div>
+
+          {filteredTasks.map((item) => (
+            <article
+              key={item.id}
+              className={styles.task}
+              style={{ opacity: item.completed ? 0.6 : 1 }}
+            >
+              <div className={styles.tagContainer}>
+                {item.public && <label className={styles.tag}>PÚBLICA</label>}
+                <label
+                  className={styles.tag}
+                  style={{
+                    backgroundColor:
+                      item.priority === "alta"
+                        ? "#ea3140"
+                        : item.priority === "media"
+                        ? "#ff9b2d"
+                        : "#3183ff",
+                  }}
+                >
+                  {item.priority.toUpperCase()}
+                </label>
+
+                <div className={styles.taskActions}>
+                  <button
+                    className={styles.checkButton}
+                    onClick={() =>
+                      handleToggleComplete(item.id, item.completed || false)
+                    }
+                  >
+                    <FaCheckCircle
+                      size={22}
+                      color={item.completed ? "#27ae60" : "#5c5c5c"}
+                    />
+                  </button>
+                  <button
+                    className={styles.editButton}
+                    onClick={() => handleEdit(item)}
+                  >
+                    <FaEdit size={20} color="#3183ff" />
+                  </button>
+                  <button
+                    className={styles.shareButton}
+                    onClick={() => handleShare(item.id)}
+                  >
+                    <FiShare2 size={20} color="#3183ff" />
+                  </button>
+                  <button
+                    className={styles.trashButton}
+                    onClick={() => handleDeleteTask(item)}
+                  >
+                    <FaTrash size={20} color="#ea3140" />
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.taskContent}>
+                {item.public ? (
+                  <Link href={`/task/${item.id}`}>
+                    <p
+                      style={{
+                        textDecoration: item.completed
+                          ? "line-through"
+                          : "none",
+                      }}
+                    >
+                      {item.tarefa}
+                    </p>
+                  </Link>
+                ) : (
+                  <p
+                    style={{
+                      textDecoration: item.completed ? "line-through" : "none",
+                    }}
+                  >
+                    {item.tarefa}
+                  </p>
+                )}
+              </div>
+            </article>
+          ))}
         </section>
       </main>
+
+      {showLimitModal && (
+        <LimitModal closeModal={() => setShowLimitModal(false)} />
+      )}
     </div>
   );
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
-  if (!session?.user)
+  if (!session?.user) {
     return { redirect: { destination: "/", permanent: false } };
+  }
   return { props: { user: { email: session?.user?.email } } };
 };
