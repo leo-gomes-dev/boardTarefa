@@ -19,15 +19,14 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Garante que o Mercado Pago sempre receba 200 OK para evitar bloqueios de Proxy
-  if (req.method !== "POST") {
-    return res.status(200).send("Apenas POST aceito");
-  }
+  // Responde 200 para qualquer método que não seja POST (evita erros de pre-flight do proxy da Coolify)
+  if (req.method !== "POST") return res.status(200).send("OK");
 
-  const { data } = req.body;
-  const paymentId = data?.id || req.body?.id;
+  // Captura robusta do ID para 2026: funciona para Pix (que usa data.id) e Cartão (que usa id direto)
+  const { data, action } = req.body;
+  const paymentId = data?.id || req.body?.id || req.query?.id;
 
-  if (!paymentId) return res.status(200).send("ID ausente");
+  if (!paymentId) return res.status(200).send("Sem ID");
 
   try {
     const payment = await new Payment(client).get({ id: String(paymentId) });
@@ -36,15 +35,25 @@ export default async function handler(
       const userEmail = payment.metadata?.email;
       const planoNome = payment.metadata?.plano;
 
-      if (!userEmail) return res.status(200).send("Email ausente");
+      if (!userEmail || !planoNome)
+        return res.status(200).send("Metadata ausente");
 
       const userRef = doc(db, "users", userEmail);
+      const userSnap = await getDoc(userRef);
+
+      if (
+        userSnap.exists() &&
+        userSnap.data()?.paymentId === String(paymentId)
+      ) {
+        return res.status(200).send("Ja processado");
+      }
+
       const dataExpiracaoJS = new Date();
       planoNome === "Enterprise 36 Meses"
         ? dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 3)
         : dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 1);
 
-      // Atualiza o Firestore
+      // 1. Atualiza Firebase
       await setDoc(
         userRef,
         {
@@ -58,21 +67,43 @@ export default async function handler(
         { merge: true }
       );
 
-      // Envia o E-mail (Seu HTML)
+      // 2. Envia E-mail (Seu HTML original preservado)
       try {
+        const baseUrl =
+          process.env.NEXTAUTH_URL || "https://tarefas.leogomesdev.com";
         await resend.emails.send({
           from: "OrganizaTask <suporte@leogomesdev.com>",
           to: [userEmail],
           subject: `🚀 Seu plano ${planoNome} está ativo!`,
-          html: `<p>Seu pagamento foi confirmado! Plano <strong>${planoNome}</strong> ativo.</p>`,
+          html: `
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+              <h1 style="color: #3183ff;">Olá!</h1>
+              <p>Boas notícias: seu pagamento foi confirmado e o <strong>OrganizaTask 2026</strong> já liberou seu acesso!</p>
+              <p><strong>Plano Ativado:</strong> ${planoNome}</p>
+              <p><strong>Validade até:</strong> ${dataExpiracaoJS.toLocaleDateString()}</p>
+              <p>Aproveite todas as novas ferramentas de produtividade agora mesmo.</p>
+              <br />
+              <div style="text-align: center;">
+                <a href="${baseUrl}/dashboard" 
+                   style="display: inline-block; background: #3183ff; color: #fff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+                   Acessar meu Painel
+                </a>
+              </div>
+              <br /><br />
+              <p style="font-size: 12px; color: #888; text-align: center;">Obrigado por apoiar nosso projeto e nos pagar esse café! ☕</p>
+            </div>
+          `,
         });
       } catch (e) {
         console.error("Erro email:", e);
       }
     }
 
+    // Retorna JSON para confirmar recebimento ao Mercado Pago
     return res.status(200).json({ success: true });
   } catch (error) {
-    return res.status(200).send("Erro processado");
+    console.error("Erro Webhook:", error);
+    // Retorna 200 mesmo em erro para evitar que o Mercado Pago fique tentando infinitamente em caso de erro de rede
+    return res.status(200).send("Erro silenciado");
   }
 }
