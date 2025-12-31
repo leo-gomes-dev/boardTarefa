@@ -125,6 +125,15 @@ export default function Premium({
                 <FaRocket color="#3183ff" size={22} /> Premium Plus
               </h2>
               <div className={styles.price}>R$ {configs.anualValor}</div>
+              <p
+                style={{
+                  color: "#3183ff",
+                  fontWeight: "bold",
+                  marginBottom: "15px",
+                }}
+              >
+                {configs.anualDesc}
+              </p>
               <ul className={styles.features}>
                 <li>
                   <FaCheckCircle color="#2ecc71" /> Tarefas Ilimitadas
@@ -177,6 +186,15 @@ export default function Premium({
                 <FaCheckCircle color="#3183ff" size={22} /> Professional Max
               </h2>
               <div className={styles.price}>R$ {configs.trienalValor}</div>
+              <p
+                style={{
+                  color: "#3183ff",
+                  fontWeight: "bold",
+                  marginBottom: "15px",
+                }}
+              >
+                {configs.trienalDesc}
+              </p>
               <ul className={styles.features}>
                 <li>
                   <FaCheckCircle color="#2ecc71" /> Tudo do Premium
@@ -240,6 +258,9 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
       configs: {
         anualValor: adminData?.planoAnualValor ?? "118,80",
         trienalValor: adminData?.planoTrienalValor ?? "284,40",
+        anualDesc: adminData?.planoAnualDescricao ?? "Apenas R$ 9,90 por mês",
+        trienalDesc:
+          adminData?.planoTrienalDescricao ?? "Apenas R$ 7,90 por mês",
       },
     },
   };
