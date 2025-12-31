@@ -5,13 +5,11 @@ import {
   FaLock,
   FaCreditCard,
   FaBarcode,
-  FaPix,
+  FaShieldAlt,
   FaArrowLeft,
-} from "react-icons/fa6";
+} from "react-icons/fa"; // Importando da v5 para compatibilidade
 
-// Importe o FaShieldAlt da categoria 'fa' (versão 5)
-import { FaShieldAlt } from "react-icons/fa";
-import { useRouter } from "next/router";
+import { useRouter } from "next/router"; // Importe o useRouter
 
 export default function Pagamento() {
   const router = useRouter();
@@ -24,7 +22,10 @@ export default function Pagamento() {
       </Head>
 
       <main className={styles.main}>
-        <button onClick={() => router.back()} className={styles.backLink}>
+        <button
+          onClick={() => router.push("/premium")}
+          className={styles.backLink}
+        >
           <FaArrowLeft /> Voltar e alterar plano
         </button>
 
@@ -59,7 +60,7 @@ export default function Pagamento() {
                 className={metodo === "pix" ? styles.active : ""}
                 onClick={() => setMetodo("pix")}
               >
-                <FaPix /> Pix
+                <FaBarcode /> Pix
               </button>
             </div>
 
