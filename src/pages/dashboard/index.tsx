@@ -525,7 +525,7 @@ export default function Dashboard({ user }: HomeProps) {
               style={{ display: "flex", flexDirection: "column", gap: "10px" }}
             >
               <Link
-                href="https://seulinkdepagamento.com.br"
+                href="https://leogomesdev.com"
                 target="_blank"
                 className={styles.linkBuy}
                 style={{
