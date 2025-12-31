@@ -173,6 +173,14 @@ export default function Dashboard({ user }: HomeProps) {
 
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
+
+    // Se não for premium, tiver 30 ou mais e NÃO for uma edição, bloqueia.
+    if (!isPremium && totalCount >= 30 && !editingTaskId) {
+      setShowLimitModal(true);
+      toast.error("Você atingiu o limite de 30 tarefas.");
+      return; // Para a execução aqui
+    }
+
     if (input.trim() === "") {
       toast.warn("Preencha a tarefa!");
       return;
@@ -401,9 +409,28 @@ export default function Dashboard({ user }: HomeProps) {
               <button
                 className={styles.button}
                 type="submit"
-                style={{ marginTop: "20px" }}
+                style={{
+                  marginTop: "20px",
+                  backgroundColor:
+                    !isPremium && totalCount >= 30 && !editingTaskId
+                      ? "#555"
+                      : "",
+                  cursor:
+                    !isPremium && totalCount >= 30 && !editingTaskId
+                      ? "not-allowed"
+                      : "pointer",
+                  filter:
+                    !isPremium && totalCount >= 30 && !editingTaskId
+                      ? "grayscale(1)"
+                      : "none",
+                }}
+                disabled={!isPremium && totalCount >= 30 && !editingTaskId}
               >
-                {editingTaskId ? "SALVAR TAREFA" : "ADICIONAR TAREFA"}
+                {!isPremium && totalCount >= 30 && !editingTaskId
+                  ? "LIMITE DE 30 TAREFAS ATINGIDO"
+                  : editingTaskId
+                  ? "SALVAR TAREFA"
+                  : "ADICIONAR TAREFA"}
               </button>
             </form>
           </div>
@@ -419,11 +446,13 @@ export default function Dashboard({ user }: HomeProps) {
               width: "100%",
             }}
           >
+            {/* SUBSTITUA A LINHA ABAIXO: */}
             <h2
               style={{ color: "#333", marginBottom: "15px", fontSize: "22px" }}
             >
-              Minhas tarefas ({totalCount})
+              Minhas tarefas ({!isPremium && totalCount > 30 ? 30 : totalCount})
             </h2>
+
             <div
               style={{
                 display: "flex",
