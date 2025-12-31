@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 import styles from "./styles.module.css";
 import {
   FaCheckCircle,
@@ -23,9 +24,8 @@ export default function Premium() {
           <p>Escolha o plano ideal para sua rotina em 2026.</p>
         </section>
 
-        {/* CONTAINER FLEX PARA OS CARDS */}
         <div className={styles.plansArea}>
-          {/* PLANO RECOMENDADO - R$ 118,80 */}
+          {/* PLANO RECOMENDADO */}
           <div className={`${styles.card} ${styles.recommended}`}>
             <div className={styles.badge}>MAIS VENDIDO</div>
             <div className={styles.cardHeader}>
@@ -53,12 +53,15 @@ export default function Premium() {
               </li>
             </ul>
 
-            <a href="/pagamento" className={styles.buyButton}>
+            <Link
+              href="/pagamento?plano=Premium Plus&valor=118,80"
+              className={styles.buyButton}
+            >
               ASSINAR AGORA
-            </a>
+            </Link>
           </div>
 
-          {/* PLANO VITALÍCIO - R$ 297,00 */}
+          {/* PLANO VITALÍCIO */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaCrown size={30} color="#e74c3c" />
@@ -86,12 +89,12 @@ export default function Premium() {
               </li>
             </ul>
 
-            <a
-              href="/pagamento"
+            <Link
+              href="/pagamento?plano=Enterprise Vitalício&valor=297,00"
               className={`${styles.buyButton} ${styles.outline}`}
             >
               ADQUIRIR VITALÍCIO
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -99,13 +102,6 @@ export default function Premium() {
           <FaShieldAlt size={14} />
           <span>Pagamento 100% seguro via criptografia em 2026</span>
         </div>
-
-        <button
-          onClick={() => window.history.back()}
-          className={styles.backButton}
-        >
-          Voltar para o meu painel
-        </button>
       </main>
     </div>
   );
