@@ -36,14 +36,14 @@ export default function Home({ posts, comments }: HomeProps) {
           "Domine o seu dia, uma tarefa por vez."
         </h1>
 
-        <div className={styles.infoContent}>
+        {/* <div className={styles.infoContent}>
           <section className={styles.box}>
             <span>+{posts} posts</span>
           </section>
           <section className={styles.box}>
             <span>+{comments} comentários</span>
           </section>
-        </div>
+        </div> */}
       </main>
     </div>
   );
