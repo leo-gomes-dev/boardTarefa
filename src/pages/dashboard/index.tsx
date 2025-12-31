@@ -244,10 +244,16 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                 {isEnterprise && (
                   <button
                     onClick={() => {
-                      // Remove filtros e garante que todas tarefas apareçam
-                      setFilter("all");
+                      // Adiciona classe temporária para print
+                      document.body.classList.add("print-mode");
+
+                      const prevFilter = filter; // guarda filtro atual
+                      setFilter("all"); // mostra todas as tasks para PDF
+
                       setTimeout(() => {
                         window.print();
+                        setFilter(prevFilter); // restaura filtro original
+                        document.body.classList.remove("print-mode"); // remove classe
                       }, 300);
                     }}
                     style={{
