@@ -1,65 +1,58 @@
-body,
-#__next {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
 .footer {
   width: 100%;
-  height: 80px; /* Altura fixa ou min-height conforme sua preferência */
+  height: 90px;
   background-color: #0f0f0f;
   display: flex;
   align-items: center;
   justify-content: center;
   border-top: 1px solid #2c2c2c;
-  margin-top: auto; /* Empurra para o fim se usar flex no layout pai */
+  margin-top: auto;
 }
 
 .content {
   max-width: 1024px;
   width: 100%;
-  padding: 0 1.5rem;
+  padding: 0 2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .brand p {
-  color: #fff;
-  font-size: 0.9rem;
+  color: #ffffff; /* Branco */
+  font-size: 1rem;
 }
 
 .brand strong {
-  color: #3178c6; /* Cor de destaque (ex: cor do TypeScript/Next) */
+  color: #3178c6;
 }
 
-.nav {
+.socialNav {
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 2rem; /* Espaçamento bem definido */
 }
 
-.link {
-  color: #fff;
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: opacity 0.2s;
+.socialLink {
+  color: #ffffff; /* Ícones brancos */
+  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
 }
 
-.link:hover {
+.socialLink:hover {
   opacity: 0.7;
+  transform: translateY(-2px);
 }
 
-/* Responsividade */
 @media (max-width: 600px) {
   .content {
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 1rem;
+    gap: 1.5rem;
+    padding: 2rem 1rem;
   }
 
   .footer {
     height: auto;
-    padding: 1rem 0;
   }
 }

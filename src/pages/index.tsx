@@ -45,7 +45,7 @@ export default function Home({ posts, comments }: HomeProps) {
           </section>
         </div>
       </main>
-      <footer className={styles.footer}>By Leo Gomes Developer</footer>
+      {/* <footer className={styles.footer}>By Leo Gomes Developer</footer> */}
     </div>
   );
 }
