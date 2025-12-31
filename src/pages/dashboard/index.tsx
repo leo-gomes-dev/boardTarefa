@@ -112,7 +112,7 @@ export default function Dashboard({ user }: HomeProps) {
         toast.success("Tarefa atualizada!");
       } else {
         // 2. Verificação de Limite para NOVAS tarefas
-        if (tasks.length >= 50) {
+        if (tasks.length >= 30) {
           setShowLimitModal(true); // Abre o modal sinalizando o limite
           return; // Interrompe o registro
         }
@@ -331,9 +331,9 @@ export default function Dashboard({ user }: HomeProps) {
                 type="submit"
                 style={{
                   backgroundColor:
-                    !editingTaskId && tasks.length >= 50 ? "#444" : "#3183ff",
+                    !editingTaskId && tasks.length >= 30 ? "#444" : "#3183ff",
                   cursor:
-                    !editingTaskId && tasks.length >= 50
+                    !editingTaskId && tasks.length >= 30
                       ? "not-allowed"
                       : "pointer",
                 }}
@@ -366,15 +366,15 @@ export default function Dashboard({ user }: HomeProps) {
               {/* CONTADOR DE TAREFAS - Fora de qualquer condição para sempre aparecer */}
               <p
                 style={{
-                  color: tasks.length >= 50 ? "#ea3140" : "#ccc",
+                  color: tasks.length >= 30 ? "#ea3140" : "#ccc",
                   fontSize: "14px",
                   marginTop: "15px",
                   textAlign: "center",
-                  fontWeight: tasks.length >= 50 ? "bold" : "normal",
+                  fontWeight: tasks.length >= 30 ? "bold" : "normal",
                   display: "block", // Garante que não seja ocultado por algum flex mal configurado
                 }}
               >
-                {tasks.length} / 50 tarefas utilizadas
+                {tasks.length} / 30 tarefas utilizadas
               </p>
             </form>
           </div>
@@ -515,7 +515,7 @@ export default function Dashboard({ user }: HomeProps) {
           <div className={styles.modalContent}>
             <h2 style={{ color: "#FFF" }}>Atenção! 🚀</h2>
             <p style={{ color: "#ccc", margin: "20px 0" }}>
-              Você atingiu o limite máximo de 50 tarefas da sua conta gratuita.
+              Você atingiu o limite máximo de 30 tarefas da sua conta gratuita.
               Mude para a <strong>Versão Premium</strong> e tenha escrita
               ilimitada para organizar toda sua rotina!
             </p>
@@ -544,7 +544,7 @@ export default function Dashboard({ user }: HomeProps) {
                 onClick={() => setShowLimitModal(false)}
                 className={styles.buttonClose}
               >
-                Continuar com 50 tarefas
+                Continuar com 30 tarefas
               </button>
             </div>
           </div>
