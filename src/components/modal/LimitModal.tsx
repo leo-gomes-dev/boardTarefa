@@ -1,11 +1,13 @@
 import Link from "next/link";
 import styles from "./styles.module.css";
 
+// 1. A interface define "as regras" de como o modal recebe dados
 interface LimitModalProps {
-  onClose: () => void;
+  closeModal: () => void;
 }
 
-export function LimitModal({ onClose }: LimitModalProps) {
+// 2. O componente usa o nome 'closeModal' para fechar o modal
+export function LimitModal({ closeModal }: LimitModalProps) {
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
@@ -20,10 +22,13 @@ export function LimitModal({ onClose }: LimitModalProps) {
           projetos?
         </p>
         <div className={styles.modalActions}>
-          <Link href="/pagamento" target="_blank" className={styles.linkBuy}>
+          {/* Link para a página onde está o botão do Stripe */}
+          <Link href="/premium" className={styles.linkBuy}>
             ☕ ME PAGAR UM CAFÉ (ACESSAR PREMIUM)
           </Link>
-          <button onClick={onClose} className={styles.buttonClose}>
+
+          {/* O botão usa a função closeModal que vem do Dashboard */}
+          <button onClick={closeModal} className={styles.buttonClose}>
             Agora não, obrigado
           </button>
         </div>

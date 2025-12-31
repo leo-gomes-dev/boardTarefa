@@ -3,10 +3,10 @@ import { ChangeEvent, FormEvent, useState, useEffect } from "react";
 import styles from "./styles.module.css";
 import Head from "next/head";
 
-import { getSession, signOut } from "next-auth/react";
+import { getSession } from "next-auth/react";
 import { Textarea } from "../../components/textarea";
 import { FiShare2 } from "react-icons/fi";
-import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa";
+import { FaTrash, FaEdit, FaCheckCircle, FaCrown } from "react-icons/fa";
 import { useRouter } from "next/router";
 
 import { db } from "../../services/firebaseConnection";
@@ -21,14 +21,12 @@ import {
   doc,
   deleteDoc,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import Link from "next/link";
 
-// biblioteca de Toast "mensagens"
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import { LimitModal } from "@/components/modal/LimitModal";
-// import { TaskCounter } from "@/components/taskCounter";
 
 interface HomeProps {
   user: {
@@ -54,61 +52,83 @@ export default function Dashboard({ user }: HomeProps) {
   const [priority, setPriority] = useState("baixa");
   const [filter, setFilter] = useState("all");
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [isPremium, setIsPremium] = useState(false); // Estado para controlar o Premium
 
   const router = useRouter();
+  const { session_id } = router.query;
 
+  // 1. Monitorar Status Premium e Notificação de Sucesso Stripe
   useEffect(() => {
-    async function loadTarefas() {
-      if (!user?.email) return; // Segurança para não buscar dados sem e-mail
+    async function checkUserStatus() {
+      if (!user?.email) return;
 
-      const tarefasRef = collection(db, "tarefas");
-      const q = query(
-        tarefasRef,
-        orderBy("created", "desc"),
-        where("user", "==", user?.email)
-      );
+      const userRef = doc(db, "users", user.email);
+      const userSnap = await getDoc(userRef);
 
-      // Criamos uma constante para poder cancelar o monitoramento depois
-      const unsub = onSnapshot(q, (snapshot) => {
-        let lista = [] as TaskProps[];
-
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-
-          lista.push({
-            id: doc.id,
-            tarefa: data.tarefa,
-            created: data.created,
-            user: data.user,
-            public: data.public,
-            completed: data.completed || false,
-            priority: data.priority || "baixa",
-          });
-        });
-
-        setTasks(lista);
-
-        // Se o usuário atingir ou exceder 30 tarefas, redireciona para premium
-        if (lista.length >= 30) {
-          setShowLimitModal(true);
-          // Opcional: Redirecionar automaticamente assim que carregar a página
-          // router.push("/premium");
-        } else {
-          setShowLimitModal(false);
-        }
-      });
-
-      return () => unsub(); // Limpa o monitoramento quando o usuário sai da página
+      if (userSnap.exists() && userSnap.data().status === "premium") {
+        setIsPremium(true);
+      }
     }
 
-    loadTarefas();
-  }, [user?.email, router]); // Adicionado router nas dependências
+    checkUserStatus();
+
+    // Notificação se acabou de voltar do Stripe
+    if (session_id) {
+      toast.success(
+        "Assinatura Premium confirmada! Aproveite os recursos ilimitados. 🚀",
+        {
+          position: "top-center",
+          autoClose: 6000,
+        }
+      );
+      router.replace("/dashboard", undefined, { shallow: true });
+    }
+  }, [user?.email, session_id, router]);
+
+  // 2. Carregar Tarefas
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const tarefasRef = collection(db, "tarefas");
+    const q = query(
+      tarefasRef,
+      orderBy("created", "desc"),
+      where("user", "==", user?.email)
+    );
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      let lista = [] as TaskProps[];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        lista.push({
+          id: doc.id,
+          tarefa: data.tarefa,
+          created: data.created,
+          user: data.user,
+          public: data.public,
+          completed: data.completed || false,
+          priority: data.priority || "baixa",
+        });
+      });
+
+      setTasks(lista);
+
+      // Lógica de bloqueio: se NÃO for premium e tiver 30 ou mais tarefas
+      if (!isPremium && lista.length >= 30) {
+        setShowLimitModal(true);
+      } else {
+        setShowLimitModal(false);
+      }
+    });
+
+    return () => unsub();
+  }, [user?.email, isPremium]);
 
   function handleChangePublic(event: ChangeEvent<HTMLInputElement>) {
     setPublicTask(event.target.checked);
   }
 
-  // Lógica de Registro e Edição com Limite Premium
+  // 3. Registro e Edição
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
 
@@ -117,21 +137,15 @@ export default function Dashboard({ user }: HomeProps) {
       return;
     }
 
-    // Agora o router.push vai funcionar corretamente
-    if (!editingTaskId && tasks.length >= 30) {
-      toast.info("Limite atingido! Redirecionando para Premium...");
-
-      setTimeout(() => {
-        router.push("/premium");
-      }, 1500);
-
+    // Validação de Limite para usuários Free
+    if (!isPremium && !editingTaskId && tasks.length >= 30) {
+      toast.info("Você atingiu o limite de 30 tarefas do plano gratuito!");
+      setShowLimitModal(true);
       return;
     }
 
-    // 3. Lógica de Salvamento no Firebase (Add ou Update)
     try {
       if (editingTaskId) {
-        // Se estiver editando, atualiza o documento existente
         const docRef = doc(db, "tarefas", editingTaskId);
         await updateDoc(docRef, {
           tarefa: input,
@@ -141,7 +155,6 @@ export default function Dashboard({ user }: HomeProps) {
         setEditingTaskId(null);
         toast.success("Tarefa atualizada!");
       } else {
-        // Se for nova, adiciona ao banco
         await addDoc(collection(db, "tarefas"), {
           tarefa: input,
           created: new Date(),
@@ -153,105 +166,38 @@ export default function Dashboard({ user }: HomeProps) {
         toast.success("Tarefa registrada!");
       }
 
-      // Limpa os campos após o sucesso
       setInput("");
       setPublicTask(false);
       setPriority("baixa");
     } catch (err) {
-      console.error("Erro ao salvar tarefa:", err);
-      toast.error("Erro ao salvar. Tente novamente.");
+      console.error("Erro ao salvar:", err);
+      toast.error("Erro ao processar sua solicitação.");
     }
   }
 
-  // Lógica de filtragem e classificação por prioridade
-  const filteredTasks = tasks
-    .filter((item) => {
-      if (filter === "completed") return item.completed === true;
-      if (filter === "pending") return item.completed === false;
-      return true; // "all"
-    })
-    .sort((a, b) => {
-      // Definimos explicitamente que as chaves são as strings permitidas
-      const pesos: { [key in "baixa" | "media" | "alta"]: number } = {
-        alta: 3,
-        media: 2,
-        baixa: 1,
-      };
-
-      // Usamos o operador de coalescência (??) para garantir um valor numérico caso venha vazio
-      const pesoA = pesos[a.priority as keyof typeof pesos] ?? 0;
-      const pesoB = pesos[b.priority as keyof typeof pesos] ?? 0;
-
-      return pesoB - pesoA;
-    });
-
-  async function handleShare(id: string) {
-    await navigator.clipboard.writeText(
-      `${process.env.NEXT_PUBLIC_URL}/task/${id}`
-    );
-    toast.info("URL Copiada com sucesso!");
-  }
-
-  function handleEdit(item: TaskProps) {
-    setInput(item.tarefa);
-    setPublicTask(item.public);
-    setPriority(item.priority || "baixa"); // Carrega a prioridade existente
-    setEditingTaskId(item.id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  async function handleToggleComplete(id: string, completed: boolean) {
-    const docRef = doc(db, "tarefas", id);
-    await updateDoc(docRef, {
-      completed: !completed,
-    });
-  }
-
-  // NOVA LÓGICA DE DELETAR COM DESFAZER
+  // 4. Deleção com "Desfazer"
   const handleDeleteTask = async (task: TaskProps) => {
-    let isUndone = false; // Controle local simples
-
+    let isUndone = false;
     const toastId = toast.info(
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          width: "100%",
-        }}
-      >
+      <div className={styles.undoContainer}>
         <span>Tarefa removida</span>
         <button
           onClick={() => {
-            isUndone = true; // Marca que o usuário clicou em desfazer
-            toast.dismiss(toastId); // Fecha este toast
+            isUndone = true;
+            toast.dismiss(toastId);
           }}
-          style={{
-            background: "#FFF",
-            color: "#3183ff",
-            border: "none",
-            padding: "4px 12px",
-            borderRadius: "4px",
-            cursor: "pointer",
-            marginLeft: "10px",
-            fontWeight: "bold",
-          }}
+          className={styles.undoBtn}
         >
           Desfazer
         </button>
       </div>,
       {
         autoClose: 4000,
-        closeOnClick: false, // Evita fechar o toast ao clicar na barra, forçando o uso do botão
+        closeOnClick: false,
         onClose: async () => {
           if (isUndone) {
-            // Se o usuário clicou em desfazer, apenas avisamos e NÃO deletamos do banco
-            toast.success("Ação desfeita!", {
-              toastId: "undo-success", // ID fixo evita duplicatas se clicar rápido
-              autoClose: 2000,
-            });
+            toast.success("Ação desfeita!");
           } else {
-            // Se o tempo acabou e NÃO foi clicado em desfazer, deletar permanente
             try {
               const docRef = doc(db, "tarefas", task.id);
               await deleteDoc(docRef);
@@ -264,257 +210,164 @@ export default function Dashboard({ user }: HomeProps) {
     );
   };
 
+  const filteredTasks = tasks
+    .filter((item) => {
+      if (filter === "completed") return item.completed === true;
+      if (filter === "pending") return item.completed === false;
+      return true;
+    })
+    .sort((a, b) => {
+      const pesos: { [key in "baixa" | "media" | "alta"]: number } = {
+        alta: 3,
+        media: 2,
+        baixa: 1,
+      };
+      const pesoA = pesos[a.priority as keyof typeof pesos] ?? 0;
+      const pesoB = pesos[b.priority as keyof typeof pesos] ?? 0;
+      return pesoB - pesoA;
+    });
+
+  async function handleShare(id: string) {
+    await navigator.clipboard.writeText(
+      `${process.env.NEXT_PUBLIC_URL}/task/${id}`
+    );
+    toast.info("URL Copiada!");
+  }
+
+  function handleEdit(item: TaskProps) {
+    setInput(item.tarefa);
+    setPublicTask(item.public);
+    setPriority(item.priority || "baixa");
+    setEditingTaskId(item.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleToggleComplete(id: string, completed: boolean) {
+    const docRef = doc(db, "tarefas", id);
+    await updateDoc(docRef, { completed: !completed });
+  }
+
   return (
     <div className={styles.container}>
       <Head>
-        <title>Meu painel de tarefas</title>
+        <title>Meu painel de tarefas - OrganizaTask</title>
       </Head>
 
       <main className={styles.main}>
+        {/* Banner de Diferenciação Premium */}
+        {isPremium && (
+          <div className={styles.premiumBanner}>
+            <FaCrown color="#f1c40f" />{" "}
+            <span>VOCÊ É PREMIUM: Tarefas ilimitadas liberadas!</span>
+          </div>
+        )}
+
         <section className={styles.content}>
           <div className={styles.contentForm}>
-            {/* CONTAINER DO TÍTULO + BOTÃO SAIR */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "18px",
-              }}
-            >
-              <h1 className={styles.title} style={{ margin: 0 }}>
-                {editingTaskId ? "Editando sua tarefa" : "Qual sua tarefa?"}
-              </h1>
-
-              <button
-                onClick={() => signOut()}
-                style={{
-                  backgroundColor: "#ea3140",
-                  color: "#FFF",
-                  padding: "6px 16px",
-                  borderRadius: "4px",
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                Sair
-              </button>
-            </div>
-
+            <h1 className={styles.title}>Qual sua tarefa hoje?</h1>
             <form onSubmit={handleRegisterTask}>
               <Textarea
                 placeholder="Digite qual sua tarefa..."
                 value={input}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                  setInput(event.target.value)
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                  setInput(e.target.value)
                 }
               />
-
-              {/* Área de Prioridade e Checkbox */}
-              <div className={styles.priorityArea} style={{ margin: "15px 0" }}>
-                <label
-                  style={{ marginRight: 10, fontWeight: "bold", color: "#fff" }}
-                >
-                  Prioridade:
+              <div className={styles.checkboxArea}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={publicTask}
+                    onChange={handleChangePublic}
+                  />
+                  <span>Deixar tarefa pública?</span>
                 </label>
+
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  style={{ padding: "5px", borderRadius: "4px" }}
+                  className={styles.selectPriority}
                 >
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
+                  <option value="baixa">Baixa Prioridade</option>
+                  <option value="media">Média Prioridade</option>
+                  <option value="alta">Alta Prioridade</option>
                 </select>
               </div>
-
-              <div
-                style={{
-                  marginBottom: 15,
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={publicTask}
-                  onChange={handleChangePublic}
-                  id="public-check"
-                />
-                <label
-                  htmlFor="public-check"
-                  style={{ color: "#fff", marginLeft: 8, cursor: "pointer" }}
-                >
-                  Deixar tarefa pública?
-                </label>
-              </div>
-
-              {/* BOTÃO PRINCIPAL */}
-              <button
-                className={styles.button}
-                type="submit"
-                style={{
-                  backgroundColor:
-                    !editingTaskId && tasks.length >= 30 ? "#444" : "#3183ff",
-                  cursor:
-                    !editingTaskId && tasks.length >= 30
-                      ? "not-allowed"
-                      : "pointer",
-                }}
-              >
-                {editingTaskId ? "Salvar Alterações" : "Registrar Tarefa"}
+              <button type="submit" className={styles.button}>
+                {editingTaskId ? "Atualizar tarefa" : "Registrar"}
               </button>
-
-              {/* BOTÃO CANCELAR - Forçamos a exibição se houver ID de edição */}
-              {editingTaskId !== null && (
-                <button
-                  type="button"
-                  className={styles.button}
-                  style={{
-                    backgroundColor: "#ea3140",
-                    marginTop: 10,
-                    display: "block",
-                    width: "100%",
-                  }}
-                  onClick={() => {
-                    setEditingTaskId(null);
-                    setInput("");
-                    setPublicTask(false);
-                    setPriority("baixa");
-                  }}
-                >
-                  Cancelar Edição
-                </button>
-              )}
-
-              {/* CONTADOR DE TAREFAS - Fora de qualquer condição para sempre aparecer */}
-              {/* <TaskCounter currentTasks={tasks.length} /> */}
             </form>
           </div>
         </section>
 
         <section className={styles.taskContainer}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 20,
-            }}
-          >
-            <h1>Tarefas</h1>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                onClick={() => setFilter("all")}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  backgroundColor: filter === "all" ? "#3183ff" : "#eee",
-                  color: filter === "all" ? "#fff" : "#000",
-                  border: "none",
-                }}
-              >
-                Todas
-              </button>
-              <button
-                onClick={() => setFilter("completed")}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  backgroundColor: filter === "completed" ? "#3183ff" : "#eee",
-                  color: filter === "completed" ? "#fff" : "#000",
-                  border: "none",
-                }}
-              >
-                Concluídas
-              </button>
-            </div>
+          <h2>Minhas tarefas ({tasks.length})</h2>
+
+          <div className={styles.filters}>
+            <button
+              onClick={() => setFilter("all")}
+              className={filter === "all" ? styles.active : ""}
+            >
+              Todas
+            </button>
+            <button
+              onClick={() => setFilter("pending")}
+              className={filter === "pending" ? styles.active : ""}
+            >
+              Pendentes
+            </button>
+            <button
+              onClick={() => setFilter("completed")}
+              className={filter === "completed" ? styles.active : ""}
+            >
+              Concluídas
+            </button>
           </div>
 
           {filteredTasks.map((item) => (
-            <article key={item.id} className={styles.task}>
+            <article
+              key={item.id}
+              className={`${styles.task} ${
+                item.completed ? styles.taskCompleted : ""
+              }`}
+            >
               <div className={styles.tagContainer}>
-                <label
-                  className={styles.tag}
-                  style={{
-                    backgroundColor:
-                      item.priority === "alta"
-                        ? "#ea3140"
-                        : item.priority === "media"
-                        ? "#f1c40f"
-                        : "#3183ff",
-                    marginRight: 8,
-                  }}
+                {item.public && <span className={styles.tag}>PÚBLICA</span>}
+                <span
+                  className={`${styles.priorityTag} ${styles[item.priority]}`}
                 >
                   {item.priority.toUpperCase()}
-                </label>
-
-                {item.public && (
-                  <>
-                    <label className={styles.tag}>PÚBLICO</label>
-                    <button
-                      className={styles.shareButton}
-                      onClick={() => handleShare(item.id)}
-                    >
-                      <FiShare2 size={22} color="#3183ff" />
-                    </button>
-                  </>
-                )}
-
-                <button
-                  style={{
-                    background: "transparent",
-                    border: 0,
-                    marginLeft: 10,
-                    cursor: "pointer",
-                  }}
-                  onClick={() =>
-                    handleToggleComplete(item.id, !!item.completed)
-                  }
-                >
-                  <FaCheckCircle
-                    size={22}
-                    color={item.completed ? "#2ecc71" : "#CCC"}
-                  />
-                </button>
+                </span>
               </div>
 
               <div className={styles.taskContent}>
-                <div
-                  style={{
-                    textDecoration: item.completed ? "line-through" : "none",
-                    opacity: item.completed ? 0.6 : 1,
-                    flex: 1,
-                  }}
-                >
-                  {item.public ? (
-                    <Link href={`/task/${item.id}`}>
-                      <p>{item.tarefa}</p>
-                    </Link>
-                  ) : (
+                {item.public ? (
+                  <Link href={`/task/${item.id}`}>
                     <p>{item.tarefa}</p>
-                  )}
-                </div>
+                  </Link>
+                ) : (
+                  <p>{item.tarefa}</p>
+                )}
 
-                <div style={{ display: "flex", gap: "15px" }}>
+                <div className={styles.actions}>
                   <button
-                    style={{
-                      background: "transparent",
-                      border: 0,
-                      cursor: "pointer",
-                    }}
-                    onClick={() => handleEdit(item)}
+                    onClick={() =>
+                      handleToggleComplete(item.id, item.completed!)
+                    }
                   >
-                    <FaEdit size={24} color="#3183ff" />
+                    <FaCheckCircle
+                      color={item.completed ? "#27ae60" : "#ccc"}
+                      size={20}
+                    />
                   </button>
-                  <button
-                    className={styles.trashButton}
-                    onClick={() => handleDeleteTask(item)}
-                  >
-                    <FaTrash size={24} color="#ea3140" />
+                  <button onClick={() => handleEdit(item)}>
+                    <FaEdit color="#3183ff" size={20} />
+                  </button>
+                  <button onClick={() => handleShare(item.id)}>
+                    <FiShare2 color="#3183ff" size={20} />
+                  </button>
+                  <button onClick={() => handleDeleteTask(item)}>
+                    <FaTrash color="#ea3140" size={20} />
                   </button>
                 </div>
               </div>
@@ -523,20 +376,23 @@ export default function Dashboard({ user }: HomeProps) {
         </section>
       </main>
 
-      {/* MODAL DE LIMITE */}
       {showLimitModal && (
-        <LimitModal onClose={() => setShowLimitModal(false)} />
+        <LimitModal closeModal={() => setShowLimitModal(false)} />
       )}
-
-      <ToastContainer />
     </div>
   );
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
+
   if (!session?.user) {
     return { redirect: { destination: "/", permanent: false } };
   }
-  return { props: { user: { email: session?.user?.email } } };
+
+  return {
+    props: {
+      user: { email: session.user.email },
+    },
+  };
 };
