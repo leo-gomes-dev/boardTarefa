@@ -168,9 +168,9 @@ export default function Admin({ user }: HomeProps) {
       </Head>
 
       <main className={styles.main}>
-        <section className={styles.content}>
+        {/* <section className={styles.content}>
           <div className={styles.contentForm}>
-            {/* ÁREA DO CABEÇALHO COM BOTÃO DE CONFIG */}
+            
             <div
               style={{
                 display: "flex",
@@ -237,7 +237,7 @@ export default function Admin({ user }: HomeProps) {
               </button>
             </form>
           </div>
-        </section>
+        </section> */}
 
         <section className={styles.taskContainer}>
           <h1>Minhas Tarefas ({tasks.length})</h1>
