@@ -5,7 +5,7 @@ import Head from "next/head";
 
 import { getSession } from "next-auth/react";
 import { Textarea } from "../../components/textarea";
-import { FiShare2 } from "react-icons/fi";
+import { FiShare2, FiSettings } from "react-icons/fi"; // Importado FiSettings
 import { FaTrash } from "react-icons/fa";
 
 import { db } from "../../services/firebaseConnection";
@@ -50,6 +50,10 @@ export default function Admin({ user }: HomeProps) {
   const [publicTask, setPublicTask] = useState(false);
   const [tasks, setTasks] = useState<TaskProps[]>([]);
   const [isPremium, setIsPremium] = useState(false);
+
+  // COLOQUE SEU EMAIL DE ADMIN AQUI
+  const ADMIN_EMAIL = "leogomdesenvolvimento@gmail.com";
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     async function loadTarefas() {
@@ -166,9 +170,40 @@ export default function Admin({ user }: HomeProps) {
       <main className={styles.main}>
         <section className={styles.content}>
           <div className={styles.contentForm}>
-            <h1 className={styles.title}>
-              Bem-vindo, {isPremium ? "Assinante Premium 👑" : "Usuário Free"}
-            </h1>
+            {/* ÁREA DO CABEÇALHO COM BOTÃO DE CONFIG */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "20px",
+              }}
+            >
+              <h1 className={styles.title}>
+                Bem-vindo, {isPremium ? "Assinante Premium 👑" : "Usuário Free"}
+              </h1>
+
+              {isAdmin && (
+                <Link
+                  href="/config"
+                  style={{
+                    backgroundColor: "#3183ff",
+                    padding: "8px 12px",
+                    borderRadius: "4px",
+                    color: "#FFF",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    textDecoration: "none",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                  }}
+                >
+                  <FiSettings size={20} />
+                  Configurações
+                </Link>
+              )}
+            </div>
 
             <form onSubmit={handleRegisterTask}>
               <Textarea
@@ -263,7 +298,6 @@ export default function Admin({ user }: HomeProps) {
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
 
-  // Se não houver sessão, redireciona para a home
   if (!session?.user) {
     return {
       redirect: {

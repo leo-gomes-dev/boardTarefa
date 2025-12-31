@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import { getSession } from "next-auth/react";
 import { GetServerSideProps } from "next";
-import { db } from "../services/firebaseConnection"; // Ajustado para a raiz de pages
+import { db } from "../../services/firebaseConnection"; // Ajustado para a raiz de pages
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
