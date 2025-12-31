@@ -1,6 +1,7 @@
 import "../../styles/globals.css";
 import type { AppProps } from "next/app";
 import { Header } from "../components/header";
+import { Footer } from "../components/footer";
 import { SessionProvider } from "next-auth/react";
 
 // Importações do Toastify
@@ -29,6 +30,7 @@ export default function App({ Component, pageProps }: AppProps) {
           pauseOnHover
           theme="colored"
         />
+        <Footer />
       </SessionProvider>
     </HelmetProvider>
   );
