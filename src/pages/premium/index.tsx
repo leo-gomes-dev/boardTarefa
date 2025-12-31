@@ -1,5 +1,6 @@
+import { useState } from "react";
 import Head from "next/head";
-import Link from "next/link";
+import { useSession } from "next-auth/react"; // Assumindo que você usa next-auth
 import styles from "./styles.module.css";
 import {
   FaCheckCircle,
@@ -11,6 +12,44 @@ import {
 } from "react-icons/fa";
 
 export default function Premium() {
+  const { data: session } = useSession();
+  const [loading, setLoading] = useState(false);
+
+  async function handleCheckout(plano: string, valor: string) {
+    if (!session?.user?.email) {
+      alert("Por favor, faça login para continuar.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plano: plano,
+          valor: valor,
+          email: session.user.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        // Redireciona para o Checkout Pro do Mercado Pago (com PIX e Cartão)
+        window.location.href = data.url;
+      } else {
+        throw new Error("Falha ao gerar link de pagamento");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao processar pagamento. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -25,7 +64,7 @@ export default function Premium() {
         </section>
 
         <div className={styles.plansArea}>
-          {/* PLANO RECOMENDADO */}
+          {/* PLANO ANUAL */}
           <div className={`${styles.card} ${styles.recommended}`}>
             <div className={styles.badge}>MAIS VENDIDO</div>
             <div className={styles.cardHeader}>
@@ -53,12 +92,13 @@ export default function Premium() {
               </li>
             </ul>
 
-            <Link
-              href="/pagamento?plano=Premium Plus&valor=118,80"
+            <button
+              onClick={() => handleCheckout("Premium Plus", "118,80")}
+              disabled={loading}
               className={styles.buyButton}
             >
-              ASSINAR AGORA
-            </Link>
+              {loading ? "PROCESSANDO..." : "ASSINAR AGORA"}
+            </button>
           </div>
 
           {/* PLANO VITALÍCIO */}
@@ -89,12 +129,13 @@ export default function Premium() {
               </li>
             </ul>
 
-            <Link
-              href="/pagamento?plano=Enterprise Vitalício&valor=297,00"
+            <button
+              onClick={() => handleCheckout("Enterprise Vitalício", "297,00")}
+              disabled={loading}
               className={`${styles.buyButton} ${styles.outline}`}
             >
-              ADQUIRIR VITALÍCIO
-            </Link>
+              {loading ? "PROCESSANDO..." : "ADQUIRIR VITALÍCIO"}
+            </button>
           </div>
         </div>
 

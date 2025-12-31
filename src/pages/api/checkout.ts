@@ -1,9 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import Stripe from "stripe";
+import { MercadoPagoConfig, Preference } from "mercadopago";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  // @ts-ignore
-  apiVersion: "2025-12-15.clover",
+// Configuração do cliente com o Access Token de 2026
+const client = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN!,
 });
 
 export default async function handler(
@@ -14,38 +14,53 @@ export default async function handler(
     const { plano, valor, email } = req.body;
 
     try {
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
-              currency: "brl",
-              product_data: {
-                name: plano,
-                description: `Acesso ao OrganizaTask 2026`,
-              },
-              unit_amount: Math.round(
-                parseFloat(valor.replace(",", ".")) * 100
-              ),
+      const preference = new Preference(client);
+
+      // Conversão do valor (Stripe usa centavos, MP usa valor real)
+      const unitPrice = parseFloat(valor.replace(",", "."));
+
+      const result = await preference.create({
+        body: {
+          items: [
+            {
+              id: "plano-2026",
+              title: plano,
+              description: `Acesso ao OrganizaTask 2026`,
+              quantity: 1,
+              unit_price: unitPrice,
+              currency_id: "BRL",
             },
-            quantity: 1,
+          ],
+          payer: {
+            email: email,
           },
-        ],
-        mode: "payment",
-        customer_email: email,
-        // --- INICIO METADATA ---
-        metadata: {
-          plano: plano, // Nome do plano (Ex: Premium Plus ou Enterprise)
-          email: email, // Backup do email por segurança
+          // Equivalente ao Metadata do Stripe
+          metadata: {
+            plano: plano,
+            email: email,
+          },
+          back_urls: {
+            success: `${req.headers.origin}/dashboard`,
+            failure: `${req.headers.origin}/premium`,
+            pending: `${req.headers.origin}/dashboard`,
+          },
+          auto_return: "approved",
+          // Habilita diversos métodos (Pix, Cartão, Boleto)
+          payment_methods: {
+            excluded_payment_types: [],
+            installments: 12, // Permite parcelamento
+          },
         },
-        // --- FIM DO METADATA ---
-        success_url: `${req.headers.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.origin}/premium`,
       });
 
-      res.status(200).json({ id: session.id, url: session.url });
+      // O Mercado Pago retorna 'id' para o SDK de Frontend
+      // ou 'init_point' para redirecionamento direto
+      res.status(200).json({
+        id: result.id,
+        url: result.init_point,
+      });
     } catch (err: any) {
-      console.error("Erro Stripe:", err.message);
+      console.error("Erro Mercado Pago:", err.message);
       res.status(500).json({ error: err.message });
     }
   } else {
