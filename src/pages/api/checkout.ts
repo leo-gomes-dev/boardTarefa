@@ -12,8 +12,9 @@ export default async function handler(
 ) {
   if (req.method === "POST") {
     let { plano, valor, email } = req.body;
+    const emailRealParaFirebase = email; // Guardamos o seu e-mail real
 
-    // FORÇAR UM E-MAIL DE TESTE SE ESTIVER EM AMBIENTE DE TESTE
+    // 2. Se for ambiente de teste, trocamos o e-mail que o Mercado Pago enxerga
     if (process.env.MP_ACCESS_TOKEN?.startsWith("TEST-")) {
       email = "comprador_teste_2026@testuser.com";
     }
