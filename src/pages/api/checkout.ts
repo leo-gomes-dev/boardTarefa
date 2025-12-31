@@ -11,7 +11,12 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method === "POST") {
-    const { plano, valor, email } = req.body;
+    let { plano, valor, email } = req.body;
+
+    // FORÇAR UM E-MAIL DE TESTE SE ESTIVER EM AMBIENTE DE TESTE
+    if (process.env.MP_ACCESS_TOKEN?.startsWith("TEST-")) {
+      email = "comprador_teste_2026@testuser.com";
+    }
 
     console.log("DEBUG CHECKOUT:", { plano, valor, email });
 
