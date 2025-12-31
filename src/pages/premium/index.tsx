@@ -63,8 +63,44 @@ export default function Premium({
 
       <main className={styles.main}>
         <section className={styles.header}>
-          <FaRocket size={50} color="#3183ff" />
-          <h1>Turbine sua produtividade</h1>
+          <FaRocket
+            size={50}
+            color={currentUserLevel > 0 ? "#27ae60" : "#3183ff"}
+          />
+
+          {currentUserLevel === 0 && <h1>Turbine sua produtividade</h1>}
+
+          {currentUserLevel === 1 && (
+            <h1 style={{ color: "#3183ff" }}>
+              Você é um Membro{" "}
+              <span
+                style={{
+                  backgroundColor: "#3183ff",
+                  color: "#FFF",
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                }}
+              >
+                PREMIUM
+              </span>
+            </h1>
+          )}
+
+          {currentUserLevel === 2 && (
+            <h1 style={{ color: "#27ae60" }}>
+              Você é um Membro{" "}
+              <span
+                style={{
+                  backgroundColor: "#27ae60",
+                  color: "#FFF",
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                }}
+              >
+                ENTERPRISE
+              </span>
+            </h1>
+          )}
         </section>
 
         <div className={styles.plansArea}>

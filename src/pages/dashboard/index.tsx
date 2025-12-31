@@ -55,6 +55,8 @@ export default function Dashboard({ user }: { user: { email: string } }) {
   const [isEnterprise, setIsEnterprise] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [showThanksModal, setShowThanksModal] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const tasksPerPage = 10;
 
@@ -123,6 +125,25 @@ export default function Dashboard({ user }: { user: { email: string } }) {
       unsubTasks();
     };
   }, [user?.email]);
+
+  useEffect(() => {
+    // 1. Verifica se a URL contém o status de sucesso do Mercado Pago
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get("status");
+    const paymentId = urlParams.get("payment_id");
+
+    // 2. Verifica no navegador se ele já viu o agradecimento para este pagamento específico
+    const alreadyShown = localStorage.getItem(`thanks_${paymentId}`);
+
+    if (status === "approved" && paymentId && !alreadyShown) {
+      setShowThanksModal(true);
+      // Salva para não mostrar novamente
+      localStorage.setItem(`thanks_${paymentId}`, "true");
+
+      // Limpa a URL para ficar bonita (remove os parâmetros do MP)
+      window.history.replaceState({}, document.title, "/dashboard");
+    }
+  }, []);
 
   // ----- Bloqueio por Plano -----
   function handleActionGuard(
@@ -714,7 +735,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           )}
         </section>
       </main>
-
       {showLimitModal && (
         <LimitModal closeModal={() => setShowLimitModal(false)} />
       )}
@@ -723,6 +743,61 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           featureName={activeFeature}
           closeModal={() => setShowUpgradeModal(false)}
         />
+      )}
+      // --- JSX do Modal de Agradecimento ---
+      {showThanksModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.8)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#1d1d2e",
+              padding: "40px",
+              borderRadius: "15px",
+              textAlign: "center",
+              maxWidth: "450px",
+              border: "2px solid #3183ff",
+            }}
+          >
+            <div style={{ fontSize: "50px", marginBottom: "20px" }}>☕</div>
+            <h2 style={{ color: "#FFF", marginBottom: "15px" }}>
+              Obrigado por me pagar um café!
+            </h2>
+            <p
+              style={{ color: "#ccc", lineHeight: "1.6", marginBottom: "25px" }}
+            >
+              Seu apoio mantém o <strong>OrganizaTask 2026</strong> ativo e em
+              constante evolução. Seu plano já está sendo processado e será
+              ativado em instantes!
+            </p>
+            <button
+              onClick={() => setShowThanksModal(false)}
+              style={{
+                backgroundColor: "#3183ff",
+                color: "#FFF",
+                padding: "12px 30px",
+                borderRadius: "8px",
+                border: "none",
+                fontWeight: "bold",
+                cursor: "pointer",
+              }}
+            >
+              Começar a usar
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
