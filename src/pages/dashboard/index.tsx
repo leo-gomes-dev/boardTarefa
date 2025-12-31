@@ -297,10 +297,6 @@ export default function Dashboard({ user }: HomeProps) {
                 <label style={{ color: "#fff" }}>Deixar tarefa pública?</label>
               </div>
 
-              <button className={styles.button} type="submit">
-                {editingTaskId ? "Salvar Alterações" : "Registrar"}
-              </button>
-
               {editingTaskId && (
                 <button
                   type="button"
