@@ -24,7 +24,7 @@ export default function SignIn() {
           <div className={styles.buttonArea}>
             <button
               className={styles.googleButton}
-              onClick={() => signIn("google", { callbackUrl: "/premium" })}
+              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
             >
               <FaGoogle size={20} />
               Continuar com Google

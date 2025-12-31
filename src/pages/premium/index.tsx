@@ -7,13 +7,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { db } from "../../services/firebaseConnection";
 import { doc, getDoc } from "firebase/firestore";
-import {
-  FaCheckCircle,
-  FaRocket,
-  FaStar,
-  FaCrown,
-  FaTimes,
-} from "react-icons/fa";
+import { FaCheckCircle, FaRocket, FaTimes } from "react-icons/fa";
 
 const PLAN_LEVELS: { [key: string]: number } = {
   Free: 0,
@@ -30,13 +24,15 @@ export default function Premium({
 }) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
-  const currentUserLevel = PLAN_LEVELS[userPlan] || 0;
+
+  const currentUserLevel = PLAN_LEVELS[userPlan] ?? 0;
 
   async function handleAction(plano: string, valor: string) {
     if (!session) {
       signIn("google", { callbackUrl: "/premium?fromModal=true" });
       return;
     }
+
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -48,6 +44,7 @@ export default function Premium({
           email: session.user?.email,
         }),
       });
+
       const data = await res.json();
       if (data.url) window.location.href = data.url;
     } catch {
@@ -62,6 +59,7 @@ export default function Premium({
       <Head>
         <title>Planos 2026</title>
       </Head>
+
       <main className={styles.main}>
         <section className={styles.header}>
           <FaRocket size={50} color="#3183ff" />
@@ -69,7 +67,50 @@ export default function Premium({
         </section>
 
         <div className={styles.plansArea}>
-          {currentUserLevel < 1 && (
+          {/* MENSAGEM PARA ENTERPRISE */}
+          {currentUserLevel >= 2 && (
+            <div
+              style={{
+                background: "#0f172a",
+                borderRadius: "12px",
+                padding: "40px 20px",
+                textAlign: "center",
+                color: "#FFF",
+                maxWidth: "600px",
+                margin: "0 auto",
+              }}
+            >
+              <h2 style={{ marginBottom: "10px" }}>
+                🎉 Você já possui o plano mais completo!
+              </h2>
+
+              <p
+                style={{ opacity: 0.8, fontSize: "15px", marginBottom: "25px" }}
+              >
+                Todos os recursos do OrganizaTask 2026 já estão liberados para
+                sua conta.
+              </p>
+
+              <a
+                href="/dashboard"
+                style={{
+                  display: "inline-block",
+                  backgroundColor: "#3183ff",
+                  color: "#FFF",
+                  padding: "10px 22px",
+                  borderRadius: "6px",
+                  fontWeight: "bold",
+                  textDecoration: "none",
+                  fontSize: "14px",
+                }}
+              >
+                ⬅ Voltar ao painel
+              </a>
+            </div>
+          )}
+
+          {/* PREMIUM – somente para FREE */}
+          {currentUserLevel === 0 && (
             <div className={`${styles.card} ${styles.recommended}`}>
               <div className={styles.badge}>RECOMENDADO</div>
               <h2>Premium Plus</h2>
@@ -99,6 +140,7 @@ export default function Premium({
             </div>
           )}
 
+          {/* ENTERPRISE – para FREE e PREMIUM */}
           {currentUserLevel < 2 && (
             <div className={styles.card}>
               <h2>Professional Max</h2>
@@ -129,31 +171,35 @@ export default function Premium({
           )}
         </div>
       </main>
+
       <ToastContainer theme="dark" />
     </div>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({
-  req,
-  query,
-}) => {
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
-  if (!session) return { redirect: { destination: "/", permanent: false } };
 
-  const userRef = doc(db, "users", session.user?.email as string);
+  if (!session?.user?.email) {
+    return {
+      redirect: { destination: "/", permanent: false },
+    };
+  }
+
+  const userRef = doc(db, "users", session.user.email);
   const userSnap = await getDoc(userRef);
+
   const adminSnap = await getDoc(
     doc(db, "users", "leogomdesenvolvimento@gmail.com")
   );
-  const data = adminSnap.data();
+  const adminData = adminSnap.data();
 
   return {
     props: {
-      userPlan: userSnap.data()?.plano || "Free",
+      userPlan: userSnap.exists() ? userSnap.data()?.plano ?? "Free" : "Free",
       configs: {
-        anualValor: data?.planoAnualValor || "118,80",
-        trienalValor: data?.planoTrienalValor || "284,40",
+        anualValor: adminData?.planoAnualValor ?? "118,80",
+        trienalValor: adminData?.planoTrienalValor ?? "284,40",
       },
     },
   };
