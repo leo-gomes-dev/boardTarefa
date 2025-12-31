@@ -127,7 +127,7 @@ export default function Premium({ configs }: PremiumProps) {
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaCrown size={30} color="#e74c3c" />
-              <span>PLANO ÚNICO</span>
+              <span>PACOTE 36 MESES</span>
               <h2>Enterprise</h2>
               <div className={styles.price}>
                 <span className={styles.currency}>R$</span>
