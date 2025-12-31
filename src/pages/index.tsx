@@ -1,12 +1,10 @@
-import { GetServerSideProps } from "next"; // Alterado de Static para ServerSide
+import { GetServerSideProps } from "next";
 import Head from "next/head";
+import Link from "next/link"; // Importação necessária
 import styles from "../../styles/home.module.css";
 import Image from "next/image";
-
 import tarefaImg from "../../public/assets/tarefas.png";
-
 import { db } from "../services/firebaseConnection";
-
 import { collection, getDocs } from "firebase/firestore";
 
 interface HomeProps {
@@ -18,7 +16,7 @@ export default function Home({ posts, comments }: HomeProps) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Leo Gomes | Organizador de tarefas</title>
+        <title>OrganizaTask 2026 | Domine sua Rotina</title>
       </Head>
 
       <main className={styles.main}>
@@ -36,25 +34,32 @@ export default function Home({ posts, comments }: HomeProps) {
           "Domine o seu dia, uma tarefa por vez."
         </h1>
 
-        {/* <div className={styles.infoContent}>
+        {/* BOTÃO DE ACESSO - UX: O destaque principal da página */}
+        <div className={styles.ctaArea}>
+          <Link href="/premium">
+            <button className={styles.buttonAcessar}>
+              ACESSAR MINHAS TAREFAS
+            </button>
+          </Link>
+        </div>
+
+        <div className={styles.infoContent}>
           <section className={styles.box}>
-            <span>+{posts} posts</span>
+            <span>+{posts} tarefas criadas</span>
           </section>
           <section className={styles.box}>
-            <span>+{comments} comentários</span>
+            <span>+{comments} feedbacks</span>
           </section>
-        </div> */}
+        </div>
       </main>
     </div>
   );
 }
 
-// Alterado para getServerSideProps para evitar erro de permissão no build
 export const getServerSideProps: GetServerSideProps = async () => {
   try {
     const commentRef = collection(db, "comments");
     const postRef = collection(db, "tarefas");
-
     const commentSnapshot = await getDocs(commentRef);
     const postSnapshot = await getDocs(postRef);
 
@@ -65,12 +70,6 @@ export const getServerSideProps: GetServerSideProps = async () => {
       },
     };
   } catch (error) {
-    console.error("Erro ao buscar dados do Firebase:", error);
-    return {
-      props: {
-        posts: 0,
-        comments: 0,
-      },
-    };
+    return { props: { posts: 0, comments: 0 } };
   }
 };

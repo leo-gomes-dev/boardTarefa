@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Head from "next/head";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react"; // Adicionado signIn
 import { GetServerSideProps } from "next";
 import styles from "./styles.module.css";
 import { toast, ToastContainer } from "react-toastify";
@@ -33,13 +33,17 @@ export default function Premium({ configs }: PremiumProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleCheckout(plano: string, valor: string) {
+    // Lógica UX: Se não está logado, abre o provedor de login (Google/GitHub etc)
     if (!session) {
-      toast.info("Quase lá! Faça login para concluir sua assinatura.", {
-        position: "top-center",
+      toast.info("Identificamos que você não está logado. Redirecionando...", {
         theme: "dark",
       });
+      setTimeout(() => {
+        signIn(); // Abre a página de login do NextAuth
+      }, 1500);
       return;
     }
+
     setLoading(true);
     try {
       const response = await fetch("/api/checkout", {
@@ -55,7 +59,7 @@ export default function Premium({ configs }: PremiumProps) {
       if (data.url) window.location.href = data.url;
       else throw new Error();
     } catch {
-      toast.error("Erro ao processar checkout.", { theme: "dark" });
+      toast.error("Erro ao processar. Tente novamente.", { theme: "dark" });
     } finally {
       setLoading(false);
     }
@@ -64,73 +68,49 @@ export default function Premium({ configs }: PremiumProps) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Planos OrganizaTask 2026 - Escolha o seu</title>
+        <title>Planos e Acesso - OrganizaTask</title>
       </Head>
       <main className={styles.main}>
         <section className={styles.header}>
           <FaRocket size={50} color="#3183ff" />
-          <h1>O plano perfeito para a sua rotina</h1>
-          <p>Organize suas tarefas, projetos e objetivos com poder máximo.</p>
+          <h1>
+            {session
+              ? `Olá, ${session.user?.name}!`
+              : "Escolha seu plano para continuar"}
+          </h1>
+          <p>Selecione a melhor opção para organizar seus projetos hoje.</p>
         </section>
 
         <div className={styles.plansArea}>
-          {/* PLANO BASIC */}
+          {/* CARD BASIC */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaUser size={30} color="#94a3b8" />
               <span>INDIVIDUAL</span>
               <h2>Free Starter</h2>
-              <div className={styles.price}>
-                <span className={styles.currency}>R$</span>
-                <span className={styles.amount}>{configs.basicValor}</span>
-              </div>
-              <p className={styles.totalPrice}>{configs.basicDesc}</p>
+              <div className={styles.price}>R$ {configs.basicValor}</div>
+              <p>{configs.basicDesc}</p>
             </div>
-            <ul className={styles.features}>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> 10 tarefas ativas
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Histórico de 7 dias
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Acesso em todos os
-                dispositivos
-              </li>
-            </ul>
             <button
-              disabled
+              onClick={() =>
+                handleCheckout("Basic Starter", configs.basicValor)
+              }
               className={`${styles.buyButton} ${styles.outline}`}
             >
-              SEU PLANO ATUAL
+              {session ? "ACESSAR VERSÃO FREE" : "LOGAR E ACESSAR"}
             </button>
           </div>
 
-          {/* PLANO ANUAL */}
+          {/* CARD ANUAL */}
           <div className={`${styles.card} ${styles.recommended}`}>
             <div className={styles.badge}>MAIS RECOMENDADO</div>
             <div className={styles.cardHeader}>
               <FaStar size={30} color="#f1c40f" />
-              <span>ASSINATURA ANUAL</span>
+              <span>PREMIUM</span>
               <h2>Premium Plus</h2>
-              <div className={styles.price}>
-                <span className={styles.currency}>R$</span>
-                <span className={styles.amount}>{configs.anualValor}</span>
-              </div>
-              <p className={styles.totalPrice}>{configs.anualDesc}</p>
+              <div className={styles.price}>R$ {configs.anualValor}</div>
+              <p>{configs.anualDesc}</p>
             </div>
-            <ul className={styles.features}>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> <FaInfinity /> Tarefas
-                ilimitadas
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Suporte Prioritário
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Dashboard de Produtividade
-              </li>
-            </ul>
             <button
               onClick={() =>
                 handleCheckout("Premium Anual", configs.anualValor)
@@ -138,33 +118,19 @@ export default function Premium({ configs }: PremiumProps) {
               disabled={loading}
               className={styles.buyButton}
             >
-              {loading ? "PROCESSANDO..." : "COMEÇAR AGORA"}
+              {loading ? "CARREGANDO..." : "ASSINAR AGORA"}
             </button>
           </div>
 
-          {/* PLANO TRIENAL */}
+          {/* CARD TRIENAL */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaCrown size={30} color="#e74c3c" />
-              <span>36 MESES (TRIENAL)</span>
+              <span>PROFISSIONAL</span>
               <h2>Professional Max</h2>
-              <div className={styles.price}>
-                <span className={styles.currency}>R$</span>
-                <span className={styles.amount}>{configs.trienalValor}</span>
-              </div>
-              <p className={styles.totalPrice}>{configs.trienalDesc}</p>
+              <div className={styles.price}>R$ {configs.trienalValor}</div>
+              <p>{configs.trienalDesc}</p>
             </div>
-            <ul className={styles.features}>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Tudo do Plano Anual
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Suporte VIP WhatsApp
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Melhor custo-benefício total
-              </li>
-            </ul>
             <button
               onClick={() =>
                 handleCheckout("Enterprise 36 Meses", configs.trienalValor)
@@ -172,17 +138,12 @@ export default function Premium({ configs }: PremiumProps) {
               disabled={loading}
               className={`${styles.buyButton} ${styles.darkButton}`}
             >
-              {loading ? "PROCESSANDO..." : "GARANTIR DESCONTO"}
+              {loading ? "CARREGANDO..." : "OBTER ACESSO MAX"}
             </button>
           </div>
         </div>
-
-        <div className={styles.secure}>
-          <FaShieldAlt size={14} />
-          <span>Pagamento Seguro processado pelo Mercado Pago</span>
-        </div>
       </main>
-      <ToastContainer position="bottom-right" autoClose={5000} theme="dark" />
+      <ToastContainer theme="dark" />
     </div>
   );
 }
@@ -191,14 +152,16 @@ export const getServerSideProps: GetServerSideProps = async () => {
   const adminEmail = "leogomdesenvolvimento@gmail.com";
   const docRef = doc(db, "users", adminEmail);
   const docSnap = await getDoc(docRef);
+
   let configs = {
     basicValor: "0,00",
     basicDesc: "Essencial para começar",
     anualValor: "118,80",
-    anualDesc: "Apenas R$ 9,90 por mês",
+    anualDesc: "R$ 9,90 por mês",
     trienalValor: "284,40",
-    trienalDesc: "Apenas R$ 7,90 por mês",
+    trienalDesc: "R$ 7,90 por mês",
   };
+
   if (docSnap.exists()) {
     const data = docSnap.data();
     configs = {
@@ -210,5 +173,6 @@ export const getServerSideProps: GetServerSideProps = async () => {
       trienalDesc: data.planoTrienalDescricao || configs.trienalDesc,
     };
   }
+
   return { props: { configs } };
 };

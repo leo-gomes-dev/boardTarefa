@@ -81,3 +81,21 @@
     text-align: center;
   }
 }
+
+.buttonAcessar {
+  background-color: #3183ff;
+  color: #fff;
+  border: 0;
+  padding: 16px 40px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+  margin-top: 2rem;
+}
+
+.buttonAcessar:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
