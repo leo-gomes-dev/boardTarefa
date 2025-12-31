@@ -1,4 +1,4 @@
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next"; // Alterado de Static para ServerSide
 import Head from "next/head";
 import styles from "../../styles/home.module.css";
 import Image from "next/image";
@@ -45,23 +45,32 @@ export default function Home({ posts, comments }: HomeProps) {
           </section>
         </div>
       </main>
-      {/* <footer className={styles.footer}>By Leo Gomes Developer</footer> */}
     </div>
   );
 }
 
-export const getStaticProps: GetStaticProps = async () => {
-  const commentRef = collection(db, "comments");
-  const postRef = collection(db, "tarefas");
+// Alterado para getServerSideProps para evitar erro de permissão no build
+export const getServerSideProps: GetServerSideProps = async () => {
+  try {
+    const commentRef = collection(db, "comments");
+    const postRef = collection(db, "tarefas");
 
-  const commentSnapshot = await getDocs(commentRef);
-  const postSnapshot = await getDocs(postRef);
+    const commentSnapshot = await getDocs(commentRef);
+    const postSnapshot = await getDocs(postRef);
 
-  return {
-    props: {
-      posts: postSnapshot.size || 0,
-      comments: commentSnapshot.size || 0,
-    },
-    revalidate: 60, //revalidado a cada 60 segundos.
-  };
+    return {
+      props: {
+        posts: postSnapshot.size || 0,
+        comments: commentSnapshot.size || 0,
+      },
+    };
+  } catch (error) {
+    console.error("Erro ao buscar dados do Firebase:", error);
+    return {
+      props: {
+        posts: 0,
+        comments: 0,
+      },
+    };
+  }
 };
