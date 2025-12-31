@@ -315,7 +315,7 @@ export default function Dashboard({ user }: HomeProps) {
               {/* Adicione isso logo abaixo do seu formulário ou dentro dele */}
               <p
                 style={{
-                  color: tasks.length >= 50 ? "#ea3140" : "#ccc",
+                  color: tasks.length >= 5 ? "#ea3140" : "#ccc",
                   fontSize: "14px",
                   marginTop: "5px",
                 }}
