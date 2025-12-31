@@ -20,56 +20,48 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).end("Method Not Allowed");
-  }
+  if (req.method !== "POST") return res.status(405).end();
 
-  // Melhora na captura do ID para suportar notificações de PIX e Cartão
+  // Captura o ID de todas as formas possíveis que o MP envia
   const { action, type, data } = req.body;
   const paymentId = data?.id || req.body?.id || req.body?.data?.id;
 
-  // Aceita notificações de 'payment' ou ações relacionadas a pagamento
-  if (
-    type === "payment" ||
-    action?.includes("payment") ||
-    req.body?.action?.startsWith("payment")
-  ) {
-    if (!paymentId) return res.status(200).send("ID ausente");
-
+  if (paymentId && (type === "payment" || action?.includes("payment"))) {
     try {
       const payment = await new Payment(client).get({ id: paymentId });
 
+      // Só prossegue se o pagamento estiver aprovado
       if (payment.status !== "approved") {
-        // Se ainda não aprovou (ex: Pix pendente), retornamos 200 para o MP parar de tentar até mudar o status
-        return res.status(200).send("Pagamento pendente ou outro status");
+        return res.status(200).send("Aguardando aprovação");
       }
 
+      // IMPORTANTE: Se for teste do MP ou metadata estiver vazio, encerramos aqui com 200
       const userEmail = payment.metadata?.email;
       const planoNome = payment.metadata?.plano;
 
-      if (!userEmail) {
-        console.error("E-mail não encontrado no metadata do pagamento.");
-        return res.status(200).send("Metadata ausente");
+      if (!userEmail || !planoNome) {
+        console.log("Notificação recebida, mas sem metadados (E-mail/Plano).");
+        return res.status(200).send("OK (Sem metadados)");
       }
 
       const userRef = doc(db, "users", userEmail);
       const userSnap = await getDoc(userRef);
 
+      // Evita duplicidade de processamento
       if (
         userSnap.exists() &&
         userSnap.data()?.paymentId === String(paymentId)
       ) {
-        return res.status(200).send("Já processado");
+        return res.status(200).send("Já processado anteriormente");
       }
 
+      // Cálculo de Expiração
       const dataExpiracaoJS = new Date();
-      if (planoNome === "Enterprise 36 Meses") {
-        dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 3);
-      } else {
-        dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 1);
-      }
+      planoNome === "Enterprise 36 Meses"
+        ? dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 3)
+        : dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 1);
 
+      // --- 1. ATUALIZA O BANCO ---
       await setDoc(
         userRef,
         {
@@ -83,16 +75,12 @@ export default async function handler(
         { merge: true }
       );
 
-      // --- ENVIO DE E-MAIL (MANTIDO SEU TEXTO ORIGINAL) ---
+      // --- 2. ENVIA O E-MAIL (MANTIDO SEU HTML ORIGINAL) ---
       try {
         const baseUrl =
-          process.env.NEXTAUTH_URL &&
-          !process.env.NEXTAUTH_URL.includes("localhost")
-            ? process.env.NEXTAUTH_URL
-            : "https://tarefas.leogomesdev.com";
-
+          process.env.NEXTAUTH_URL || "https://tarefas.leogomesdev.com";
         await resend.emails.send({
-          from: "OrganizaTask <suporte.leogomesdev.com>", // Verifique se o domínio está verificado no Resend
+          from: "OrganizaTask <suporte@leogomesdev.com>",
           to: [userEmail],
           subject: `🚀 Seu plano ${planoNome} está ativo!`,
           html: `
@@ -114,14 +102,14 @@ export default async function handler(
             </div>
           `,
         });
-      } catch (emailErr) {
-        console.error("Erro ao enviar e-mail:", emailErr);
+      } catch (e) {
+        console.error("Falha no e-mail:", e);
       }
 
       return res.status(200).json({ success: true });
     } catch (error) {
-      console.error("Erro no Webhook:", error);
-      return res.status(200).send("Erro interno");
+      console.error("Erro no processamento do Webhook:", error);
+      return res.status(200).send("Erro interno ignorado para o MP");
     }
   }
 
