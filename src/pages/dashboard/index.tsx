@@ -60,11 +60,12 @@ export default function Dashboard({ user }: HomeProps) {
         orderBy("created", "desc"),
         where("user", "==", user?.email)
       );
+
       onSnapshot(q, (snapshot) => {
         let lista = [] as TaskProps[];
 
         snapshot.forEach((doc) => {
-          const data = doc.data(); // Captura os dados para facilitar o acesso
+          const data = doc.data();
 
           lista.push({
             id: doc.id,
@@ -73,12 +74,16 @@ export default function Dashboard({ user }: HomeProps) {
             user: data.user,
             public: data.public,
             completed: data.completed || false,
-            // ADICIONE A LINHA ABAIXO:
             priority: data.priority || "baixa",
           });
         });
 
         setTasks(lista);
+
+        // Lógica para abrir o modal automaticamente se já tiver 30 ou mais tarefas
+        if (lista.length >= 30) {
+          setShowLimitModal(true);
+        }
       });
     }
 
@@ -92,50 +97,17 @@ export default function Dashboard({ user }: HomeProps) {
   // Adicione este estado ao seu componente
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
-
-    // 1. Feedback de campo vazio
     if (input.trim() === "") {
-      toast.warn("Por favor, digite uma tarefa antes de registrar!");
+      toast.warn("Preencha a tarefa!");
       return;
     }
 
-    try {
-      if (editingTaskId) {
-        // Lógica de Edição (Não tem limite)
-        const docRef = doc(db, "tarefas", editingTaskId);
-        await updateDoc(docRef, {
-          tarefa: input,
-          public: publicTask,
-          priority: priority,
-        });
-        setEditingTaskId(null);
-        toast.success("Tarefa atualizada!");
-      } else {
-        // 2. Verificação de Limite para NOVAS tarefas
-        if (tasks.length >= 30) {
-          setShowLimitModal(true); // Abre o modal sinalizando o limite
-          return; // Interrompe o registro
-        }
-
-        await addDoc(collection(db, "tarefas"), {
-          tarefa: input,
-          created: new Date(),
-          user: user?.email,
-          public: publicTask,
-          completed: false,
-          priority: priority,
-        });
-        toast.success("Tarefa registrada!");
-      }
-
-      // Limpa os campos após sucesso
-      setInput("");
-      setPriority("baixa");
-      setPublicTask(false);
-    } catch (err) {
-      console.log(err);
-      toast.error("Erro ao salvar tarefa.");
+    if (!editingTaskId && tasks.length >= 30) {
+      setShowLimitModal(true);
+      return;
     }
+
+    // ... restante da sua lógica de addDoc ou updateDoc
   }
 
   // Lógica de filtragem e classificação por prioridade
@@ -515,12 +487,12 @@ export default function Dashboard({ user }: HomeProps) {
           <div className={styles.modalContent}>
             <h2>Limite Atingido! 🚀</h2>
             <p>
-              Você atingiu o limite de 50 tarefas gratuitas em 2026. Desbloqueie
+              Você atingiu o limite de 30 tarefas gratuitas em 2026. Desbloqueie
               a <strong>Versão Premium</strong> para ter escrita ilimitada!
             </p>
             <div className={styles.modalActions}>
               <Link
-                href="https://seulinkdepagamento.com.br"
+                href="https://pagamento.leogomesdev.com.br"
                 target="_blank"
                 className={styles.linkBuy}
               >
