@@ -115,7 +115,7 @@ export default function Dashboard({ user }: HomeProps) {
           tarefa: input,
           public: publicTask,
           priority: priority,
-          user: user.email, // Crucial para validar a regra write do Firebase
+          user: user.email,
         });
         setEditingTaskId(null);
         toast.success("Tarefa atualizada!");
@@ -123,7 +123,7 @@ export default function Dashboard({ user }: HomeProps) {
         await addDoc(collection(db, "tarefas"), {
           tarefa: input,
           created: new Date(),
-          user: user.email, // Crucial para validar a regra create do Firebase
+          user: user.email,
           public: publicTask,
           completed: false,
           priority: priority,
@@ -136,7 +136,7 @@ export default function Dashboard({ user }: HomeProps) {
       setPriority("baixa");
     } catch (err) {
       console.error(err);
-      toast.error("Erro de permissão no Firebase. Verifique suas regras.");
+      toast.error("Erro ao salvar no banco.");
     }
   }
 
@@ -223,7 +223,6 @@ export default function Dashboard({ user }: HomeProps) {
                 }
               />
 
-              {/* LINHA DE CHECKBOX E PRIORIDADE - RESPONSIVO */}
               <div
                 style={{
                   display: "flex",
@@ -234,7 +233,6 @@ export default function Dashboard({ user }: HomeProps) {
                   marginTop: "15px",
                 }}
               >
-                {/* Checkbox à esquerda */}
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "10px" }}
                 >
@@ -257,7 +255,6 @@ export default function Dashboard({ user }: HomeProps) {
                   </label>
                 </div>
 
-                {/* Prioridade à direita (Botões Coloridos) */}
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
@@ -284,7 +281,14 @@ export default function Dashboard({ user }: HomeProps) {
                               ? "#f1c40f"
                               : "#27ae60"
                             : "transparent",
-                        color: "#FFF",
+                        color:
+                          priority === p
+                            ? "#FFF"
+                            : p === "alta"
+                            ? "#e74c3c"
+                            : p === "media"
+                            ? "#f1c40f"
+                            : "#27ae60",
                         fontSize: "11px",
                         fontWeight: "bold",
                         cursor: "pointer",
@@ -309,7 +313,6 @@ export default function Dashboard({ user }: HomeProps) {
         </section>
 
         <section className={styles.taskContainer}>
-          {/* FILTROS CENTRALIZADOS E MODERNOS */}
           <div
             style={{
               display: "flex",
@@ -320,7 +323,7 @@ export default function Dashboard({ user }: HomeProps) {
             }}
           >
             <h2
-              style={{ color: "#FFF", marginBottom: "15px", fontSize: "22px" }}
+              style={{ color: "#333", marginBottom: "15px", fontSize: "22px" }}
             >
               Minhas tarefas
             </h2>
@@ -345,7 +348,7 @@ export default function Dashboard({ user }: HomeProps) {
                     borderRadius: "25px",
                     border: "1px solid #3183ff",
                     background: filter === f.id ? "#3183ff" : "transparent",
-                    color: "#FFF",
+                    color: filter === f.id ? "#FFF" : "#3183ff", // COR RIGIDA PARA FUNDO BRANCO
                     fontWeight: "bold",
                     fontSize: "12px",
                     cursor: "pointer",
