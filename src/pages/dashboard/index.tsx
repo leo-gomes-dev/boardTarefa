@@ -28,6 +28,7 @@ import Link from "next/link";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { LimitModal } from "@/components/modal/LimitModal";
+// import { TaskCounter } from "@/components/taskCounter";
 
 interface HomeProps {
   user: {
@@ -388,18 +389,7 @@ export default function Dashboard({ user }: HomeProps) {
               )}
 
               {/* CONTADOR DE TAREFAS - Fora de qualquer condição para sempre aparecer */}
-              <p
-                style={{
-                  color: tasks.length >= 30 ? "#ea3140" : "#ccc",
-                  fontSize: "14px",
-                  marginTop: "15px",
-                  textAlign: "center",
-                  fontWeight: tasks.length >= 30 ? "bold" : "normal",
-                  display: "block", // Garante que não seja ocultado por algum flex mal configurado
-                }}
-              >
-                {tasks.length} / 30 tarefas utilizadas
-              </p>
+              {/* <TaskCounter currentTasks={tasks.length} /> */}
             </form>
           </div>
         </section>
