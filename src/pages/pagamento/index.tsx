@@ -2,7 +2,8 @@ import Head from "next/head";
 import { useState, useEffect } from "react";
 import styles from "./styles.module.css";
 import { useRouter } from "next/router";
-import Link from "next/link"; // Importação essencial para navegação segura
+import Link from "next/link";
+import { useSession } from "next-auth/react"; // Importante para o e-mail do cliente
 import {
   FaLock,
   FaCreditCard,
@@ -12,20 +13,61 @@ import {
 } from "react-icons/fa";
 
 export default function Pagamento() {
+  const { data: session } = useSession();
   const router = useRouter();
+
   const [metodo, setMetodo] = useState("cartao");
+  const [loading, setLoading] = useState(false);
+  const [nomePlano, setNomePlano] = useState("Carregando...");
+  const [valorPlano, setValorPlano] = useState("0,00");
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  // Estados para garantir que os valores apareçam mesmo após o refresh
-  const [nomePlano, setNomePlano] = useState("Plano Anual Premium Plus");
-  const [valorPlano, setValorPlano] = useState("118,80");
-
-  // Sincroniza os dados da URL com o estado da página
   useEffect(() => {
     if (router.isReady) {
-      if (router.query.plano) setNomePlano(String(router.query.plano));
-      if (router.query.valor) setValorPlano(String(router.query.valor));
+      const planoQuery = router.query.plano || "Plano Anual Premium Plus";
+      const valorQuery = router.query.valor || "118,80";
+
+      setNomePlano(String(planoQuery));
+      setValorPlano(String(valorQuery));
+      setIsDataLoaded(true);
     }
   }, [router.isReady, router.query]);
+
+  // Função que integra com o Stripe
+  async function handleCheckout(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plano: nomePlano,
+          valor: valorPlano,
+          email: session?.user?.email, // Envia o email do usuário logado
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        // Redireciona para o checkout seguro do Stripe (Cartão ou Pix)
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || "Erro ao gerar checkout");
+      }
+    } catch (err) {
+      console.error("Erro no pagamento:", err);
+      alert("Houve um erro ao iniciar o pagamento. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!isDataLoaded) {
+    return <div className={styles.loadingContainer}>Carregando...</div>;
+  }
 
   return (
     <div className={styles.container}>
@@ -34,13 +76,8 @@ export default function Pagamento() {
       </Head>
 
       <main className={styles.main}>
-        {/* Usando Link para garantir que a navegação funcione 100% das vezes */}
-        <Link
-          href="/premium"
-          className={styles.backLink}
-          style={{ textDecoration: "none" }}
-        >
-          <button type="button" className={styles.backLinkButton}>
+        <Link href="/premium" style={{ textDecoration: "none" }}>
+          <button type="button" className={styles.backLink}>
             <FaArrowLeft /> Voltar e alterar plano
           </button>
         </Link>
@@ -53,7 +90,7 @@ export default function Pagamento() {
               <strong>R$ {valorPlano}</strong>
             </div>
             <p className={styles.disclaimer}>
-              Acesso liberado imediatamente após a confirmação do pagamento.
+              Acesso liberado imediatamente após a confirmação.
             </p>
             <div className={styles.secureBadge}>
               <FaLock /> Ambiente 100% seguro
@@ -61,7 +98,7 @@ export default function Pagamento() {
           </section>
 
           <section className={styles.paymentBox}>
-            <h1>Forma de pagamento</h1>
+            <h1>Checkout Seguro</h1>
 
             <div className={styles.methods}>
               <button
@@ -69,7 +106,7 @@ export default function Pagamento() {
                 className={metodo === "cartao" ? styles.active : ""}
                 onClick={() => setMetodo("cartao")}
               >
-                <FaCreditCard /> Cartão
+                <FaCreditCard /> Cartão de Crédito
               </button>
               <button
                 type="button"
@@ -80,30 +117,30 @@ export default function Pagamento() {
               </button>
             </div>
 
-            <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
-              {metodo === "cartao" ? (
-                <>
-                  <input type="text" placeholder="Número do cartão" required />
-                  <input type="text" placeholder="Nome no cartão" required />
-                  <div className={styles.row}>
-                    <input type="text" placeholder="MM/AA" required />
-                    <input type="text" placeholder="CVV" required />
-                  </div>
-                </>
-              ) : (
-                <div className={styles.pixArea}>
-                  <p>O QR Code Pix será gerado após clicar no botão abaixo.</p>
-                  <span>Liberação instantânea</span>
-                </div>
-              )}
+            <form className={styles.form} onSubmit={handleCheckout}>
+              <div className={styles.pixArea}>
+                <p>
+                  Ao clicar no botão abaixo, você será redirecionado para a
+                  página segura do
+                  <strong> Stripe</strong> para concluir o pagamento via{" "}
+                  {metodo === "cartao" ? "Cartão" : "Pix"}.
+                </p>
+                {metodo === "pix" && (
+                  <span>Liberação instantânea via Pix!</span>
+                )}
+              </div>
 
-              <button type="submit" className={styles.payButton}>
-                {metodo === "cartao" ? "FINALIZAR COMPRA" : "GERAR CHAVE PIX"}
+              <button
+                type="submit"
+                className={styles.payButton}
+                disabled={loading}
+              >
+                {loading ? "PROCESSANDO..." : `PAGAR R$ ${valorPlano}`}
               </button>
             </form>
 
             <div className={styles.footerSecure}>
-              <FaShieldAlt /> Checkout protegido por criptografia ponta a ponta.
+              <FaShieldAlt /> Processado com segurança por Stripe
             </div>
           </section>
         </div>
