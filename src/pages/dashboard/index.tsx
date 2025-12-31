@@ -496,16 +496,17 @@ export default function Dashboard({ user }: { user: { email: string } }) {
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  flexDirection: "column",
+                  gap: "8px",
                 }}
               >
+                {/* Texto da tarefa + badge */}
                 <div
                   style={{
-                    flex: 1,
                     display: "flex",
                     alignItems: "center",
-                    gap: "10px",
+                    gap: "8px",
+                    flexWrap: "wrap",
                   }}
                 >
                   <p
@@ -514,53 +515,59 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                       margin: 0,
                       fontWeight: "500",
                       color: "#000",
+                      flex: 1,
+                      wordBreak: "break-word",
                     }}
                   >
                     {item.tarefa}
                   </p>
 
-                  {/* Badge PÚBLICA */}
+                  {/* Badge verde para tarefa pública */}
                   {item.public && isEnterprise && (
                     <span
                       style={{
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "50%",
                         backgroundColor: "#27ae60",
-                        color: "#FFF",
-                        padding: "2px 8px",
-                        borderRadius: "12px",
-                        fontSize: "11px",
-                        fontWeight: "bold",
+                        display: "inline-block",
                       }}
-                    >
-                      PÚBLICA
-                    </span>
-                  )}
-
-                  {/* Checkbox Deixar Pública (só Enterprise) */}
-                  {isEnterprise && (
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        marginLeft: "10px",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={item.public}
-                        onChange={(e) =>
-                          updateDoc(doc(db, "tarefas", item.id), {
-                            public: e.target.checked,
-                          })
-                        }
-                      />
-                      <span style={{ fontSize: "11px" }}>Pública</span>
-                    </label>
+                    />
                   )}
                 </div>
 
+                {/* Checkbox de deixar pública (só Enterprise) - ABAIXO DO TEXTO */}
+                {isEnterprise && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={item.public}
+                      onChange={(e) =>
+                        updateDoc(doc(db, "tarefas", item.id), {
+                          public: e.target.checked,
+                        })
+                      }
+                    />
+                    <label style={{ fontSize: "12px", color: "#333" }}>
+                      Deixar Pública
+                    </label>
+                  </div>
+                )}
+
+                {/* Botões da tarefa (embaixo para não quebrar o layout) */}
                 <div
-                  style={{ display: "flex", gap: "12px", alignItems: "center" }}
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                    marginTop: "5px",
+                  }}
                 >
                   <button
                     onClick={() =>
@@ -610,7 +617,9 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                         () => {
                           if (!item.public) {
                             toast.warn(
-                              "Esta tarefa não é pública. Apenas tarefas Enterprise podem ser públicas!"
+                              isEnterprise
+                                ? "Esta tarefa não é pública. Marque como pública para compartilhar!"
+                                : "Apenas tarefas Enterprise podem ser públicas!"
                             );
                             return;
                           }
