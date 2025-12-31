@@ -127,24 +127,26 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     };
   }, [user?.email]);
 
-  // Captura retorno do Mercado Pago (Cartão e Pix via Redirect)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const status = urlParams.get("status");
-    const paymentId =
-      urlParams.get("payment_id") || urlParams.get("preference_id");
+    const paymentId = urlParams.get("payment_id");
 
-    if (paymentId) {
-      const alreadyShown = localStorage.getItem(`thanks_${paymentId}`);
-
-      // Só mostra se for aprovado e se ainda não foi mostrado para este ID
-      if (status === "approved" && !alreadyShown) {
-        setShowThanksModal(true);
-        localStorage.setItem(`thanks_${paymentId}`, "true");
-      }
-
-      // LIMPEZA OBRIGATÓRIA: Remove os parâmetros da URL para o F5 não repetir a lógica
+    // Se houver parâmetros de pagamento na URL, limpamos a URL IMEDIATAMENTE
+    if (status || paymentId) {
+      // Limpa a URL para o próximo F5 não encontrar nada
       window.history.replaceState({}, document.title, "/dashboard");
+
+      if (status === "approved" && paymentId) {
+        const alreadyShown = localStorage.getItem(`thanks_shown_${paymentId}`);
+
+        if (!alreadyShown) {
+          setShowThanksModal(true);
+          // Opcional: não setamos o localStorage aqui, deixamos para o botão "Começar a usar"
+          // Isso garante que se ele der F5 com o modal aberto, o modal volte (o que é bom)
+          // Mas após clicar em fechar, ele nunca mais volta.
+        }
+      }
     }
   }, []);
 
