@@ -48,7 +48,7 @@ export default async function handler(
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      const userEmail = session.customer_email;
+      const userEmail = session.customer_email || session.metadata?.email;
       const planoNome = session.metadata?.plano;
 
       if (userEmail) {

@@ -33,7 +33,7 @@ export default async function handler(
         ],
         mode: "payment",
         customer_email: email,
-        // --- ADICIONADO METADATA ABAIXO ---
+        // --- INICIO METADATA ---
         metadata: {
           plano: plano, // Nome do plano (Ex: Premium Plus ou Enterprise)
           email: email, // Backup do email por segurança
