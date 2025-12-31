@@ -20,48 +20,48 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "POST") return res.status(405).end();
+  // Em produção na Coolify, o MP pode as vezes testar a rota via GET/PUT. Retornamos 200 sempre para não dar erro de Proxy.
+  if (req.method !== "POST") {
+    return res.status(200).send("Method Not Allowed mas OK para Proxy");
+  }
 
-  // Captura o ID de todas as formas possíveis que o MP envia
+  // Captura robusta do ID para garantir que o PIX (que as vezes envia o ID via data.id ou query) seja lido
   const { action, type, data } = req.body;
-  const paymentId = data?.id || req.body?.id || req.body?.data?.id;
+  const paymentId =
+    data?.id || req.body?.id || req.body?.data?.id || req.query?.id;
 
   if (paymentId && (type === "payment" || action?.includes("payment"))) {
     try {
-      const payment = await new Payment(client).get({ id: paymentId });
+      const payment = await new Payment(client).get({ id: String(paymentId) });
 
-      // Só prossegue se o pagamento estiver aprovado
       if (payment.status !== "approved") {
         return res.status(200).send("Aguardando aprovação");
       }
 
-      // IMPORTANTE: Se for teste do MP ou metadata estiver vazio, encerramos aqui com 200
       const userEmail = payment.metadata?.email;
       const planoNome = payment.metadata?.plano;
 
       if (!userEmail || !planoNome) {
-        console.log("Notificação recebida, mas sem metadados (E-mail/Plano).");
+        console.log("LOG: Notificação sem metadados.");
         return res.status(200).send("OK (Sem metadados)");
       }
 
       const userRef = doc(db, "users", userEmail);
       const userSnap = await getDoc(userRef);
 
-      // Evita duplicidade de processamento
       if (
         userSnap.exists() &&
         userSnap.data()?.paymentId === String(paymentId)
       ) {
-        return res.status(200).send("Já processado anteriormente");
+        return res.status(200).send("Já processado");
       }
 
-      // Cálculo de Expiração
       const dataExpiracaoJS = new Date();
       planoNome === "Enterprise 36 Meses"
         ? dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 3)
         : dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 1);
 
-      // --- 1. ATUALIZA O BANCO ---
+      // --- 1. ATUALIZA O BANCO (PRIORIDADE) ---
       await setDoc(
         userRef,
         {
@@ -79,6 +79,7 @@ export default async function handler(
       try {
         const baseUrl =
           process.env.NEXTAUTH_URL || "https://tarefas.leogomesdev.com";
+
         await resend.emails.send({
           from: "OrganizaTask <suporte@leogomesdev.com>",
           to: [userEmail],
@@ -103,13 +104,13 @@ export default async function handler(
           `,
         });
       } catch (e) {
-        console.error("Falha no e-mail:", e);
+        console.error("LOG: Falha no e-mail, mas banco atualizado.");
       }
 
       return res.status(200).json({ success: true });
     } catch (error) {
-      console.error("Erro no processamento do Webhook:", error);
-      return res.status(200).send("Erro interno ignorado para o MP");
+      console.error("LOG: Erro Webhook:", error);
+      return res.status(200).send("Erro tratado para evitar loop do MP");
     }
   }
 
