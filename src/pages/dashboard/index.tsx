@@ -303,9 +303,9 @@ export default function Dashboard({ user }: HomeProps) {
               <button
                 className={styles.button}
                 type="submit"
-                disabled={!editingTaskId && tasks.length >= 50}
+                disabled={!editingTaskId && tasks.length >= 5}
                 style={{
-                  opacity: !editingTaskId && tasks.length >= 50 ? 0.5 : 1,
+                  opacity: !editingTaskId && tasks.length >= 5 ? 0.5 : 1,
                 }}
               >
                 {editingTaskId ? "Salvar Alterações" : "Registrar Tarefa"}
@@ -466,7 +466,7 @@ export default function Dashboard({ user }: HomeProps) {
           <div className={styles.modalContent}>
             <h2>Limite Atingido!</h2>
             <p>
-              Você atingiu o limite de 50 tarefas gratuitas. Para continuar,
+              Você atingiu o limite de 5 tarefas gratuitas. Para continuar,
               adquira o plano ilimitado.
             </p>
             <div className={styles.modalActions}>
