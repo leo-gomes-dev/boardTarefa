@@ -259,7 +259,7 @@ export default function Dashboard({ user }: HomeProps) {
 
                 <div
                   className={styles.checkboxArea}
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                  // style={{ display: "flex", alignItems: "center", gap: "10px" }}
                 >
                   <input
                     type="checkbox"
