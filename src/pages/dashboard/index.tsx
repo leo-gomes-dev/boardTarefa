@@ -102,7 +102,7 @@ export default function Dashboard({ user }: HomeProps) {
         toast.success("Tarefa atualizada com sucesso!");
       } else {
         // Lógica de Registro com verificação de limite
-        if (tasks.length >= 50) {
+        if (tasks.length >= 5) {
           setShowLimitModal(true);
           return;
         }
