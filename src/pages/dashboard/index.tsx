@@ -228,11 +228,38 @@ export default function Dashboard({ user }: HomeProps) {
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "column",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between", // Empurra o checkbox para a esquerda e o select para a direita
                   gap: "15px",
                   marginTop: "15px",
                 }}
               >
+                {/* Checkbox agora à esquerda */}
+                <div
+                  className={styles.checkboxArea}
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
+                  <input
+                    type="checkbox"
+                    id="public_check"
+                    checked={publicTask}
+                    onChange={(e) => setPublicTask(e.target.checked)}
+                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                  />
+                  <label
+                    htmlFor="public_check"
+                    style={{
+                      color: "#FFF",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Tornar tarefa pública?
+                  </label>
+                </div>
+
+                {/* Prioridade agora à direita */}
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "10px" }}
                 >
@@ -255,25 +282,6 @@ export default function Dashboard({ user }: HomeProps) {
                     <option value="media">Média</option>
                     <option value="alta">Alta</option>
                   </select>
-                </div>
-
-                <div
-                  className={styles.checkboxArea}
-                  // style={{ display: "flex", alignItems: "center", gap: "10px" }}
-                >
-                  <input
-                    type="checkbox"
-                    id="public_check"
-                    checked={publicTask}
-                    onChange={(e) => setPublicTask(e.target.checked)}
-                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
-                  />
-                  <label
-                    htmlFor="public_check"
-                    style={{ color: "#FFF", cursor: "pointer" }}
-                  >
-                    Tornar tarefa pública?
-                  </label>
                 </div>
               </div>
 
