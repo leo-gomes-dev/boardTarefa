@@ -1,7 +1,5 @@
 import Head from "next/head";
 import Link from "next/link";
-import { Header } from "../components/header";
-import { Footer } from "../components/footer";
 
 export default function Custom404() {
   return (
@@ -17,8 +15,6 @@ export default function Custom404() {
       <Head>
         <title>Página não encontrada | OrganizaTask 2026</title>
       </Head>
-
-      <Header />
 
       <main
         style={{
@@ -76,8 +72,6 @@ export default function Custom404() {
           </Link>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
