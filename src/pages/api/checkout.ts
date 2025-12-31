@@ -13,6 +13,8 @@ export default async function handler(
   if (req.method === "POST") {
     const { plano, valor, email } = req.body;
 
+    console.log("DEBUG CHECKOUT:", { plano, valor, email });
+
     try {
       const preference = new Preference(client);
 
