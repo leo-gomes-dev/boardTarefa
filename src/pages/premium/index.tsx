@@ -34,7 +34,7 @@ export default function Premium({ configs }: PremiumProps) {
 
   async function handleCheckout(plano: string, valor: string) {
     if (!session) {
-      toast.info("Faça login para concluir sua assinatura.", {
+      toast.info("Quase lá! Faça login para concluir sua assinatura.", {
         position: "top-center",
         theme: "dark",
       });
@@ -55,7 +55,7 @@ export default function Premium({ configs }: PremiumProps) {
       if (data.url) window.location.href = data.url;
       else throw new Error();
     } catch {
-      toast.error("Erro ao iniciar checkout.", { theme: "dark" });
+      toast.error("Erro ao processar checkout.", { theme: "dark" });
     } finally {
       setLoading(false);
     }
@@ -64,21 +64,22 @@ export default function Premium({ configs }: PremiumProps) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Planos 2026 - OrganizaTask</title>
+        <title>Planos OrganizaTask 2026 - Escolha o seu</title>
       </Head>
       <main className={styles.main}>
         <section className={styles.header}>
           <FaRocket size={50} color="#3183ff" />
-          <h1>Turbine seus estudos em 2026</h1>
-          <p>O empurrão que faltava para sua organização acadêmica.</p>
+          <h1>O plano perfeito para a sua rotina</h1>
+          <p>Organize suas tarefas, projetos e objetivos com poder máximo.</p>
         </section>
 
         <div className={styles.plansArea}>
+          {/* PLANO BASIC */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaUser size={30} color="#94a3b8" />
-              <span>FREE</span>
-              <h2>Basic Starter</h2>
+              <span>INDIVIDUAL</span>
+              <h2>Free Starter</h2>
               <div className={styles.price}>
                 <span className={styles.currency}>R$</span>
                 <span className={styles.amount}>{configs.basicValor}</span>
@@ -92,20 +93,25 @@ export default function Premium({ configs }: PremiumProps) {
               <li>
                 <FaCheckCircle color="#2ecc71" /> Histórico de 7 dias
               </li>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> Acesso em todos os
+                dispositivos
+              </li>
             </ul>
             <button
               disabled
               className={`${styles.buyButton} ${styles.outline}`}
             >
-              PLANO ATUAL
+              SEU PLANO ATUAL
             </button>
           </div>
 
+          {/* PLANO ANUAL */}
           <div className={`${styles.card} ${styles.recommended}`}>
-            <div className={styles.badge}>MAIS VENDIDO</div>
+            <div className={styles.badge}>MAIS RECOMENDADO</div>
             <div className={styles.cardHeader}>
               <FaStar size={30} color="#f1c40f" />
-              <span>12 MESES</span>
+              <span>ASSINATURA ANUAL</span>
               <h2>Premium Plus</h2>
               <div className={styles.price}>
                 <span className={styles.currency}>R$</span>
@@ -121,6 +127,9 @@ export default function Premium({ configs }: PremiumProps) {
               <li>
                 <FaCheckCircle color="#2ecc71" /> Suporte Prioritário
               </li>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> Dashboard de Produtividade
+              </li>
             </ul>
             <button
               onClick={() =>
@@ -129,15 +138,16 @@ export default function Premium({ configs }: PremiumProps) {
               disabled={loading}
               className={styles.buyButton}
             >
-              {loading ? "CARREGANDO..." : "ASSINAR AGORA"}
+              {loading ? "PROCESSANDO..." : "COMEÇAR AGORA"}
             </button>
           </div>
 
+          {/* PLANO TRIENAL */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaCrown size={30} color="#e74c3c" />
-              <span>36 MESES</span>
-              <h2>Student Pro</h2>
+              <span>36 MESES (TRIENAL)</span>
+              <h2>Professional Max</h2>
               <div className={styles.price}>
                 <span className={styles.currency}>R$</span>
                 <span className={styles.amount}>{configs.trienalValor}</span>
@@ -149,10 +159,10 @@ export default function Premium({ configs }: PremiumProps) {
                 <FaCheckCircle color="#2ecc71" /> Tudo do Plano Anual
               </li>
               <li>
-                <FaCheckCircle color="#2ecc71" /> 1 ano grátis (Economia)
+                <FaCheckCircle color="#2ecc71" /> Suporte VIP WhatsApp
               </li>
               <li>
-                <FaCheckCircle color="#2ecc71" /> Suporte via WhatsApp
+                <FaCheckCircle color="#2ecc71" /> Melhor custo-benefício total
               </li>
             </ul>
             <button
@@ -162,9 +172,14 @@ export default function Premium({ configs }: PremiumProps) {
               disabled={loading}
               className={`${styles.buyButton} ${styles.darkButton}`}
             >
-              {loading ? "CARREGANDO..." : "ECONOMIZAR AGORA"}
+              {loading ? "PROCESSANDO..." : "GARANTIR DESCONTO"}
             </button>
           </div>
+        </div>
+
+        <div className={styles.secure}>
+          <FaShieldAlt size={14} />
+          <span>Pagamento Seguro processado pelo Mercado Pago</span>
         </div>
       </main>
       <ToastContainer position="bottom-right" autoClose={5000} theme="dark" />
@@ -178,11 +193,11 @@ export const getServerSideProps: GetServerSideProps = async () => {
   const docSnap = await getDoc(docRef);
   let configs = {
     basicValor: "0,00",
-    basicDesc: "Grátis para sempre",
+    basicDesc: "Essencial para começar",
     anualValor: "118,80",
-    anualDesc: "R$ 9,90 por mês",
+    anualDesc: "Apenas R$ 9,90 por mês",
     trienalValor: "284,40",
-    trienalDesc: "R$ 7,90 por mês (Melhor preço)",
+    trienalDesc: "Apenas R$ 7,90 por mês",
   };
   if (docSnap.exists()) {
     const data = docSnap.data();

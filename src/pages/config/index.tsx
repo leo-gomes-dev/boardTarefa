@@ -27,13 +27,11 @@ export default function PaginaConfiguracoes({
       if (docSnap.exists()) {
         const data = docSnap.data();
         setBasicValor(data.planoBasicValor || "0,00");
-        setBasicDesc(data.planoBasicDescricao || "Grátis para sempre");
+        setBasicDesc(data.planoBasicDescricao || "Essencial para começar");
         setAnualValor(data.planoAnualValor || "118,80");
-        setAnualDesc(data.planoAnualDescricao || "R$ 9,90 por mês");
+        setAnualDesc(data.planoAnualDescricao || "Apenas R$ 9,90 por mês");
         setTrienalValor(data.planoTrienalValor || "284,40");
-        setTrienalDesc(
-          data.planoTrienalDescricao || "R$ 7,90 por mês (Melhor preço)"
-        );
+        setTrienalDesc(data.planoTrienalDescricao || "Apenas R$ 7,90 por mês");
       }
       setLoading(false);
     }
@@ -58,9 +56,9 @@ export default function PaginaConfiguracoes({
         },
         { merge: true }
       );
-      toast.success("PREÇOS ATUALIZADOS PARA 2026!");
+      toast.success("TABELA DE PREÇOS ATUALIZADA COM SUCESSO!");
     } catch {
-      toast.error("Erro ao salvar.");
+      toast.error("Falha ao salvar configurações.");
     } finally {
       setLoading(false);
     }
@@ -76,14 +74,16 @@ export default function PaginaConfiguracoes({
       }}
     >
       <main style={{ maxWidth: "600px", margin: "0 auto" }}>
-        <h1>Painel Admin - Preços Acadêmicos</h1>
+        <h1 style={{ borderBottom: "1px solid #333", paddingBottom: "10px" }}>
+          Gerenciador de Planos 2026
+        </h1>
         <form
           onSubmit={handleSave}
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "20px",
-            marginTop: "20px",
+            marginTop: "30px",
           }}
         >
           <div
@@ -93,16 +93,31 @@ export default function PaginaConfiguracoes({
               borderRadius: "8px",
             }}
           >
-            <h3>Plano Basic</h3>
+            <h3 style={{ color: "#94a3b8" }}>Configurações Plano Basic</h3>
             <input
-              style={{ width: "100%", padding: "10px", margin: "5px 0" }}
+              style={{
+                width: "100%",
+                padding: "12px",
+                margin: "8px 0",
+                background: "#000",
+                color: "#fff",
+                border: "1px solid #333",
+              }}
               value={basicValor}
               onChange={(e) => setBasicValor(e.target.value)}
+              placeholder="Valor"
             />
             <input
-              style={{ width: "100%", padding: "10px" }}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: "#000",
+                color: "#fff",
+                border: "1px solid #333",
+              }}
               value={basicDesc}
               onChange={(e) => setBasicDesc(e.target.value)}
+              placeholder="Descrição"
             />
           </div>
           <div
@@ -112,16 +127,31 @@ export default function PaginaConfiguracoes({
               borderRadius: "8px",
             }}
           >
-            <h3>Plano Anual</h3>
+            <h3 style={{ color: "#3183ff" }}>Configurações Plano Anual</h3>
             <input
-              style={{ width: "100%", padding: "10px", margin: "5px 0" }}
+              style={{
+                width: "100%",
+                padding: "12px",
+                margin: "8px 0",
+                background: "#000",
+                color: "#fff",
+                border: "1px solid #333",
+              }}
               value={anualValor}
               onChange={(e) => setAnualValor(e.target.value)}
+              placeholder="Valor"
             />
             <input
-              style={{ width: "100%", padding: "10px" }}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: "#000",
+                color: "#fff",
+                border: "1px solid #333",
+              }}
               value={anualDesc}
               onChange={(e) => setAnualDesc(e.target.value)}
+              placeholder="Descrição"
             />
           </div>
           <div
@@ -131,29 +161,46 @@ export default function PaginaConfiguracoes({
               borderRadius: "8px",
             }}
           >
-            <h3>Plano Trienal (36 Meses)</h3>
+            <h3 style={{ color: "#e74c3c" }}>Configurações Plano Trienal</h3>
             <input
-              style={{ width: "100%", padding: "10px", margin: "5px 0" }}
+              style={{
+                width: "100%",
+                padding: "12px",
+                margin: "8px 0",
+                background: "#000",
+                color: "#fff",
+                border: "1px solid #333",
+              }}
               value={trienalValor}
               onChange={(e) => setTrienalValor(e.target.value)}
+              placeholder="Valor"
             />
             <input
-              style={{ width: "100%", padding: "10px" }}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: "#000",
+                color: "#fff",
+                border: "1px solid #333",
+              }}
               value={trienalDesc}
               onChange={(e) => setTrienalDesc(e.target.value)}
+              placeholder="Descrição"
             />
           </div>
           <button
             type="submit"
             style={{
-              padding: "15px",
+              padding: "18px",
               background: "#3183ff",
               color: "#fff",
               border: "none",
+              fontWeight: "bold",
               cursor: "pointer",
+              borderRadius: "5px",
             }}
           >
-            {loading ? "SALVANDO..." : "ATUALIZAR TUDO AGORA"}
+            {loading ? "SALVANDO..." : "PUBLICAR ALTERAÇÕES"}
           </button>
         </form>
       </main>
