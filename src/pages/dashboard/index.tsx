@@ -50,6 +50,7 @@ export default function Dashboard({ user }: HomeProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [priority, setPriority] = useState("baixa");
   const [filter, setFilter] = useState("all");
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   useEffect(() => {
     async function loadTarefas() {
@@ -89,27 +90,18 @@ export default function Dashboard({ user }: HomeProps) {
   }
 
   // Adicione este estado ao seu componente
-
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
     if (input === "") return;
 
     try {
       if (editingTaskId) {
-        // Lógica de Edição (não conta para o limite)
-        const docRef = doc(db, "tarefas", editingTaskId);
-        await updateDoc(docRef, {
-          tarefa: input,
-          public: publicTask,
-          priority: priority,
-        });
-        setEditingTaskId(null);
-        toast.success("Tarefa atualizada!");
+        // ... (mantenha sua lógica de edição igual)
       } else {
-        // Lógica de Novo Registro (Aqui aplicamos o limite)
+        // VERIFICAÇÃO DE LIMITE
         if (tasks.length >= 50) {
-          toast.error("Limite atingido! Você só pode ter 50 tarefas.");
-          return; // Interrompe a execução aqui
+          setShowLimitModal(true); // Abre o modal se atingir 50
+          return;
         }
 
         await addDoc(collection(db, "tarefas"), {
@@ -122,12 +114,10 @@ export default function Dashboard({ user }: HomeProps) {
         });
         toast.success("Tarefa registrada!");
       }
-
       setInput("");
       setPriority("baixa");
     } catch (err) {
       console.log(err);
-      toast.error("Erro ao salvar tarefa.");
     }
   }
 
@@ -347,6 +337,15 @@ export default function Dashboard({ user }: HomeProps) {
               >
                 {editingTaskId ? "Atualizar" : "Registrar"}
               </button>
+              <div
+                style={{
+                  marginTop: "10px",
+                  fontSize: "13px",
+                  color: tasks.length >= 45 ? "#ea3140" : "#888",
+                }}
+              >
+                {tasks.length} de 50 tarefas utilizadas
+              </div>
             </form>
           </div>
         </section>
@@ -481,6 +480,35 @@ export default function Dashboard({ user }: HomeProps) {
         </section>
       </main>
       <ToastContainer />
+      {/* Modal de Limite Atingido */}
+      {showLimitModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Limite Atingido!</h2>
+            <p>
+              Você atingiu o limite de 50 tarefas gratuitas em 2026. Desbloqueie
+              o acesso ilimitado para continuar crescendo!
+            </p>
+
+            <div className={styles.modalActions}>
+              <Link
+                href="https://seulinkdepagamento.com.br"
+                target="_blank"
+                className={styles.linkBuy}
+              >
+                Adquirir Acesso Ilimitado
+              </Link>
+
+              <button
+                onClick={() => setShowLimitModal(false)}
+                className={styles.buttonClose}
+              >
+                Talvez mais tarde
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
