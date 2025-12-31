@@ -117,3 +117,69 @@
   border: 0;
   margin: 0 8px;
 }
+
+/* Estilo para o banner de usuário Premium */
+.premiumBanner {
+  width: 100%;
+  max-width: 1024px;
+  background: linear-gradient(90deg, #f1c40f, #d4af37);
+  color: #000;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
+}
+
+/* Estilo para o seletor de prioridade que adicionamos */
+.selectPriority {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  outline: none;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+/* Estilo para o container de "Desfazer" dentro do Toast */
+.undoContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.undoBtn {
+  background: #fff;
+  color: #ea3140;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+/* Cores das Tags de Prioridade nas tarefas */
+.priorityTag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.baixa {
+  background-color: #27ae60;
+}
+.media {
+  background-color: #f39c12;
+}
+.alta {
+  background-color: #e74c3c;
+}
