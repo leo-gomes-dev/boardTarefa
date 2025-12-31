@@ -268,7 +268,7 @@ export default function Dashboard({ user }: HomeProps) {
         </section>
       </main>
 
-      {/* Modal explicativo */}
+      {/* ✅ NOVO – Modal explicativo */}
       {showPublicInfo && (
         <div
           style={{
