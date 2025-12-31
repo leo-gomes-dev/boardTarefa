@@ -1,0 +1,104 @@
+.container {
+  min-height: 100vh;
+  background-color: #0f0f0f;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.main {
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  margin: 20px 0 10px;
+}
+
+.header p {
+  color: #ccc;
+  margin-bottom: 40px;
+}
+
+.card {
+  background-color: #17181f;
+  border: 1px solid #3183ff;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(49, 131, 255, 0.2);
+}
+
+.cardHeader span {
+  color: #3183ff;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.cardHeader h2 {
+  font-size: 2rem;
+  margin: 10px 0;
+}
+
+.price {
+  margin: 20px 0;
+}
+
+.amount {
+  font-size: 3.5rem;
+  font-weight: bold;
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 30px 0;
+  text-align: left;
+}
+
+.features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.buyButton {
+  display: block;
+  background-color: #2ecc71;
+  color: #fff;
+  text-decoration: none;
+  padding: 18px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  transition: transform 0.2s, filter 0.2s;
+}
+
+.buyButton:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.secure {
+  margin-top: 20px;
+  color: #888;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.backButton {
+  background: transparent;
+  border: none;
+  color: #888;
+  margin-top: 30px;
+  cursor: pointer;
+  text-decoration: underline;
+}
