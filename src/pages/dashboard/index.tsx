@@ -127,16 +127,23 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     };
   }, [user?.email]);
 
-  // Captura retorno do Mercado Pago (Cartão)
+  // Captura retorno do Mercado Pago (Cartão e Pix via Redirect)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const status = urlParams.get("status");
-    const paymentId = urlParams.get("payment_id");
-    const alreadyShown = localStorage.getItem(`thanks_${paymentId}`);
+    const paymentId =
+      urlParams.get("payment_id") || urlParams.get("preference_id");
 
-    if (status === "approved" && paymentId && !alreadyShown) {
-      setShowThanksModal(true);
-      localStorage.setItem(`thanks_${paymentId}`, "true");
+    if (paymentId) {
+      const alreadyShown = localStorage.getItem(`thanks_${paymentId}`);
+
+      // Só mostra se for aprovado e se ainda não foi mostrado para este ID
+      if (status === "approved" && !alreadyShown) {
+        setShowThanksModal(true);
+        localStorage.setItem(`thanks_${paymentId}`, "true");
+      }
+
+      // LIMPEZA OBRIGATÓRIA: Remove os parâmetros da URL para o F5 não repetir a lógica
       window.history.replaceState({}, document.title, "/dashboard");
     }
   }, []);
