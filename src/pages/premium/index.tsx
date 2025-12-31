@@ -208,7 +208,7 @@ export default function Premium({
             </div>
           )}
 
-          {/* ENTERPRISE – para FREE e PREMIUM */}
+          {/* ENTERPRISE – visível para FREE e PREMIUM */}
           {currentUserLevel < 2 && (
             <div className={styles.card}>
               <h2
@@ -219,12 +219,12 @@ export default function Premium({
                   justifyContent: "center",
                 }}
               >
-                <FaCheckCircle color="#3183ff" size={22} /> Professional Max
+                <FaCheckCircle color="#27ae60" size={22} /> Enterprise Max
               </h2>
               <div className={styles.price}>R$ {configs.trienalValor}</div>
               <p
                 style={{
-                  color: "#3183ff",
+                  color: "#27ae60",
                   fontWeight: "bold",
                   marginBottom: "15px",
                 }}
@@ -253,8 +253,9 @@ export default function Premium({
                   handleAction("Enterprise 36 Meses", configs.trienalValor)
                 }
                 className={`${styles.buyButton} ${styles.darkButton}`}
+                style={{ backgroundColor: "#27ae60" }}
               >
-                UPGRADE PARA MAX
+                {loading ? "PROCESSANDO..." : "UPGRADE ENTERPRISE MAX"}
               </button>
             </div>
           )}
