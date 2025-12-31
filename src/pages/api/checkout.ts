@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 
-// Configuração do cliente com o Access Token de 2026
+// Configuração do cliente utilizando a variável de ambiente do servidor
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
@@ -11,12 +11,15 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method === "POST") {
-    // Usamos 'let' para permitir a reatribuição do e-mail
+    // Definimos como 'let' para permitir a substituição segura em modo de teste
     let { plano, valor, email } = req.body;
-    const emailRealParaFirebase = email; // Guardamos o e-mail original para o Firebase
+    const emailRealParaFirebase = email; // Backup do e-mail logado para o Webhook/Firebase
 
-    // Se estivermos em ambiente de teste (verificado pela chave de acesso)
-    // Trocamos o e-mail que o Mercado Pago vai enxergar
+    /**
+     * LÓGICA DE SEGURANÇA PARA TESTES (2026):
+     * O Mercado Pago bloqueia pagamentos onde o e-mail do comprador é o mesmo do vendedor.
+     * Se detectarmos uma chave de teste (TEST-), forçamos um e-mail de comprador fictício.
+     */
     if (process.env.MP_ACCESS_TOKEN?.startsWith("TEST-")) {
       email = "comprador_teste_2026@testuser.com";
     }
@@ -24,7 +27,7 @@ export default async function handler(
     try {
       const preference = new Preference(client);
 
-      // Conversão do valor (Mercado Pago usa valor real, não centavos)
+      // Tratamento do valor: Converte "118,80" para o número 118.80
       const unitPrice = parseFloat(valor.replace(",", "."));
 
       const result = await preference.create({
@@ -33,18 +36,21 @@ export default async function handler(
             {
               id: "plano-2026",
               title: plano,
-              description: `Acesso ao OrganizaTask 2026`,
+              description: `Upgrade de conta OrganizaTask - ${plano}`,
               quantity: 1,
               unit_price: unitPrice,
               currency_id: "BRL",
             },
           ],
           payer: {
-            email: email, // MP verá o e-mail de teste/real aqui
+            email: email, // Envia e-mail de teste (no sandbox) ou real (em produção)
           },
+          /**
+           * IMPORTANTE: O campo 'metadata' é o que seu Webhook deve ler.
+           * Aqui enviamos o e-mail real do usuário para garantir a atualização no Firebase.
+           */
           metadata: {
             plano: plano,
-            // O Firebase lerá este e-mail para identificar o usuário real
             email: emailRealParaFirebase,
           },
           back_urls: {
@@ -52,26 +58,25 @@ export default async function handler(
             failure: `${req.headers.origin}/premium`,
             pending: `${req.headers.origin}/dashboard`,
           },
-          auto_return: "approved", // Redireciona automaticamente após pagamento
+          auto_return: "approved", // Redireciona o usuário sozinho após o pagamento
           payment_methods: {
-            excluded_payment_types: [], // Garante que Pix/Boleto não sejam excluídos
-            installments: 12, // Permite parcelamento no cartão em até 12x
+            excluded_payment_types: [], // Mantém todos os métodos (Pix, Cartão, Boleto)
+            installments: 12, // Permite parcelamento
           },
         },
       });
 
-      // Retorna o link (init_point) para o frontend redirecionar o usuário
+      // Retorna a URL do Checkout Pro (init_point)
       res.status(200).json({
         id: result.id,
         url: result.init_point,
       });
     } catch (err: any) {
-      // Em produção, use um serviço de log como Sentry, não apenas console.error
-      console.error("Erro Mercado Pago:", err.message);
-      res.status(500).json({ error: err.message });
+      console.error("Erro na API Mercado Pago:", err.message);
+      res.status(500).json({ error: "Erro interno ao processar o checkout." });
     }
   } else {
     res.setHeader("Allow", "POST");
-    res.status(405).end("Method Not Allowed");
+    res.status(405).end("Método não permitido");
   }
 }
