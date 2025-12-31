@@ -92,15 +92,34 @@ export default function Dashboard({ user }: HomeProps) {
   // Adicione este estado ao seu componente
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
-    if (input === "") return;
+
+    // Feedback visual se o campo estiver vazio
+    if (input.trim() === "") {
+      toast.warn("Por favor, digite uma tarefa antes de registrar!", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return; // Interrompe a execução para não salvar no banco
+    }
 
     try {
       if (editingTaskId) {
-        // ... (mantenha sua lógica de edição igual)
+        const docRef = doc(db, "tarefas", editingTaskId);
+        await updateDoc(docRef, {
+          tarefa: input,
+          public: publicTask,
+          priority: priority,
+        });
+        setEditingTaskId(null);
+        toast.success("Tarefa atualizada!");
       } else {
         // VERIFICAÇÃO DE LIMITE
-        if (tasks.length >= 5) {
-          setShowLimitModal(true); // Abre o modal se atingir 50
+        if (tasks.length >= 50) {
+          setShowLimitModal(true);
           return;
         }
 
@@ -116,8 +135,10 @@ export default function Dashboard({ user }: HomeProps) {
       }
       setInput("");
       setPriority("baixa");
+      setPublicTask(false);
     } catch (err) {
       console.log(err);
+      toast.error("Erro ao processar sua tarefa.");
     }
   }
 
