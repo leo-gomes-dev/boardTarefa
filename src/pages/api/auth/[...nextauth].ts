@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { db } from "../../../services/firebaseConnection";
+import { doc, getDoc } from "firebase/firestore";
 
 export const authOptions = {
   providers: [
@@ -8,17 +10,40 @@ export const authOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     }),
   ],
-  // UX 2026: Aponta para a sua página de login personalizada
   pages: {
     signIn: "/signin",
   },
   callbacks: {
-    // Adiciona o ID do usuário na sessão para facilitar consultas no Firestore
+    // 1. JWT: Executado quando o token é criado ou atualizado
+    // Buscamos o plano no Firestore uma vez e guardamos no Token
+    async jwt({ token, user }: any) {
+      if (user) {
+        try {
+          const userRef = doc(db, "users", user.email);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            token.plan = userSnap.data().plano || "Free";
+          } else {
+            token.plan = "Free";
+          }
+        } catch (error) {
+          token.plan = "Free";
+        }
+      }
+      return token;
+    },
+
+    // 2. SESSION: Repassa a informação do Token para o Front-end
     async session({ session, token }: any) {
       try {
         return {
           ...session,
           id: token.sub,
+          user: {
+            ...session.user,
+            plan: token.plan, // Aqui o Footer conseguirá ler: session.user.plan
+          },
         };
       } catch {
         return {
@@ -27,11 +52,9 @@ export const authOptions = {
         };
       }
     },
-    // Executado no momento do login
-    async signIn({ user, account, profile }: any) {
-      const { email } = user;
+
+    async signIn({ user }: any) {
       try {
-        // Você pode adicionar lógicas de bloqueio aqui se necessário
         return true;
       } catch (err) {
         console.log("ERRO NO SIGNIN: ", err);
@@ -39,7 +62,6 @@ export const authOptions = {
       }
     },
   },
-  // Chave de criptografia das sessões
   secret: process.env.JWT_SECRET as string,
 };
 
