@@ -1,42 +1,60 @@
+/* src/pages/admin/styles.module.css */
+
 .container {
   width: 100%;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
 }
 
 .content {
   background-color: #0f0f0f;
   width: 100%;
   display: flex;
-  align-items: center;
   justify-content: center;
+  padding: 40px 0;
 }
 
 .contentForm {
   max-width: 1024px;
   width: 100%;
   padding: 0 18px;
-  padding-bottom: 28px;
-  margin-top: 58px;
 }
 
 .title {
   color: #fff;
-  margin-bottom: 8px;
+  margin-bottom: 18px;
+}
+
+/* 1. Ajuste: Itens um abaixo do outro no formulário */
+.checkboxArea {
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column; /* Força um abaixo do outro */
+  gap: 15px;
 }
 
 .checkboxArea label {
-  margin-left: 8px;
+  display: flex;
+  align-items: center;
   color: #fff;
+  cursor: pointer;
+  gap: 8px;
 }
 
-.checkboxArea {
-  margin: 14px 0;
+.selectPriority {
+  width: 100%;
+  max-width: 250px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #fff;
+  border: 1px solid #909090;
+  outline: none;
 }
 
-.checkbox {
-  width: 18px;
-  height: 18px;
-}
-
+/* 2. Ajuste: Botão desabilitado no limite */
 .button {
   width: 100%;
   border: 0;
@@ -45,141 +63,120 @@
   background-color: #3183ff;
   padding: 12px 0;
   font-size: 18px;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
 
+.button:disabled {
+  background-color: #4b4b4b;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 3. Ajuste: Filtros (Minhas tarefas) sem ficar colado */
 .taskContainer {
-  margin: 34px auto 0 auto;
+  margin: 40px auto;
   padding: 0 18px;
   width: 100%;
   max-width: 1024px;
-  display: flex;
-  flex-direction: column;
 }
 
-.taskContainer a {
-  text-decoration: none;
-  color: #0f0f0f;
-}
-
-.taskContainer h1 {
+.taskContainer h2 {
   text-align: center;
-  font-size: 32px;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 
+.filters {
+  display: flex;
+  justify-content: center;
+  gap: 12px; /* Espaço entre os botões de filtro */
+  margin-bottom: 25px;
+}
+
+.filters button {
+  background: transparent;
+  border: 1px solid #ccc;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.filters button.active {
+  background-color: #3183ff;
+  color: #fff;
+  border-color: #3183ff;
+}
+
+/* Lista de Tarefas */
 .task {
   margin-bottom: 14px;
-  line-height: 150%;
+  padding: 16px;
+  border: 1.5px solid #e2e2e2;
+  border-radius: 8px;
+  background-color: #fff;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  border: 1.5px solid #909090;
-  border-radius: 4px;
-  padding: 14px;
+}
+
+.taskCompleted {
+  opacity: 0.6;
+  background-color: #f9f9f9;
 }
 
 .tagContainer {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .tag {
   background-color: #3183ff;
-  padding: 2px 6px;
   color: #fff;
+  padding: 2px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px;
 }
 
-.shareButton {
-  background: transparent;
-  border: 0;
-  margin: 0 8px;
-  cursor: pointer;
+.priorityTag {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* Cores de prioridade */
+.baixa {
+  color: #27ae60;
+}
+.media {
+  color: #f1c40f;
+}
+.alta {
+  color: #e74c3c;
 }
 
 .taskContent {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   width: 100%;
+  gap: 10px;
 }
 
 .taskContent p {
   white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
 }
 
 .trashButton {
-  cursor: pointer;
   background: transparent;
   border: 0;
-  margin: 0 8px;
-}
-
-/* Estilo para o banner de usuário Premium */
-.premiumBanner {
-  width: 100%;
-  max-width: 1024px;
-  background: linear-gradient(90deg, #f1c40f, #d4af37);
-  color: #000;
-  padding: 12px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
-}
-
-/* Estilo para o seletor de prioridade que adicionamos */
-.selectPriority {
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  outline: none;
-  background-color: #fff;
   cursor: pointer;
-}
-
-/* Estilo para o container de "Desfazer" dentro do Toast */
-.undoContainer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.undoBtn {
-  background: #fff;
-  color: #ea3140;
-  border: none;
-  padding: 4px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  margin-left: 10px;
-}
-
-/* Cores das Tags de Prioridade nas tarefas */
-.priorityTag {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: #fff;
-  font-weight: bold;
-  margin-left: 8px;
-}
-
-.baixa {
-  background-color: #27ae60;
-}
-.media {
-  background-color: #f39c12;
-}
-.alta {
-  background-color: #e74c3c;
 }
