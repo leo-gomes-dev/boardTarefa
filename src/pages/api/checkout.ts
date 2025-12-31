@@ -11,20 +11,20 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method === "POST") {
+    // Usamos 'let' para permitir a reatribuição do e-mail
     let { plano, valor, email } = req.body;
-    const emailRealParaFirebase = email; // Guardamos o seu e-mail real
+    const emailRealParaFirebase = email; // Guardamos o e-mail original para o Firebase
 
-    // 2. Se for ambiente de teste, trocamos o e-mail que o Mercado Pago enxerga
+    // Se estivermos em ambiente de teste (verificado pela chave de acesso)
+    // Trocamos o e-mail que o Mercado Pago vai enxergar
     if (process.env.MP_ACCESS_TOKEN?.startsWith("TEST-")) {
       email = "comprador_teste_2026@testuser.com";
     }
 
-    console.log("DEBUG CHECKOUT:", { plano, valor, email });
-
     try {
       const preference = new Preference(client);
 
-      // Conversão do valor (Stripe usa centavos, MP usa valor real)
+      // Conversão do valor (Mercado Pago usa valor real, não centavos)
       const unitPrice = parseFloat(valor.replace(",", "."));
 
       const result = await preference.create({
@@ -40,34 +40,33 @@ export default async function handler(
             },
           ],
           payer: {
-            email: email,
+            email: email, // MP verá o e-mail de teste/real aqui
           },
-          // Equivalente ao Metadata do Stripe
           metadata: {
             plano: plano,
-            email: email,
+            // O Firebase lerá este e-mail para identificar o usuário real
+            email: emailRealParaFirebase,
           },
           back_urls: {
             success: `${req.headers.origin}/dashboard`,
             failure: `${req.headers.origin}/premium`,
             pending: `${req.headers.origin}/dashboard`,
           },
-          auto_return: "approved",
-          // Habilita diversos métodos (Pix, Cartão, Boleto)
+          auto_return: "approved", // Redireciona automaticamente após pagamento
           payment_methods: {
-            excluded_payment_types: [],
-            installments: 12, // Permite parcelamento
+            excluded_payment_types: [], // Garante que Pix/Boleto não sejam excluídos
+            installments: 12, // Permite parcelamento no cartão em até 12x
           },
         },
       });
 
-      // O Mercado Pago retorna 'id' para o SDK de Frontend
-      // ou 'init_point' para redirecionamento direto
+      // Retorna o link (init_point) para o frontend redirecionar o usuário
       res.status(200).json({
         id: result.id,
         url: result.init_point,
       });
     } catch (err: any) {
+      // Em produção, use um serviço de log como Sentry, não apenas console.error
       console.error("Erro Mercado Pago:", err.message);
       res.status(500).json({ error: err.message });
     }
