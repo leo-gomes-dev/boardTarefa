@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { db } from "../../services/firebaseConnection";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import Head from "next/head";
 import { getSession } from "next-auth/react";
 import { GetServerSideProps } from "next";
+import { db } from "../../services/firebaseConnection";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import styles from "./styles.module.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -19,96 +21,144 @@ export default function AdminConfig({ userEmail }: ConfigProps) {
 
   useEffect(() => {
     async function loadConfigs() {
+      // Busca as configurações no seu documento de usuário admin
       const userRef = doc(db, "users", userEmail);
       const docSnap = await getDoc(userRef);
+
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setAnualValor(data.planoAnualValor?.toString() || "");
-        setAnualDesc(data.planoAnualDescricao || "");
-        setVitalicioValor(data.planoVitalicioValor?.toString() || "");
-        setVitalicioDesc(data.planoVitalicioDescricao || "");
+        setAnualValor(data.planoAnualValor || "118,80");
+        setAnualDesc(
+          data.planoAnualDescricao || "R$ 118,80 cobrados anualmente"
+        );
+        setVitalicioValor(data.planoVitalicioValor || "297,00");
+        setVitalicioDesc(
+          data.planoVitalicioDescricao || "Acesso vitalício sem mensalidade"
+        );
       }
       setLoading(false);
     }
     loadConfigs();
   }, [userEmail]);
 
-  const handleSave = async () => {
+  async function handleSaveConfig(e: React.FormEvent) {
+    e.preventDefault();
     setLoading(true);
-    const userRef = doc(db, "users", userEmail);
+
     try {
+      const userRef = doc(db, "users", userEmail);
       await updateDoc(userRef, {
-        planoAnualValor: parseFloat(anualValor),
+        planoAnualValor: anualValor,
         planoAnualDescricao: anualDesc,
-        planoVitalicioValor: parseFloat(vitalicioValor),
+        planoVitalicioValor: vitalicioValor,
         planoVitalicioDescricao: vitalicioDesc,
       });
-      toast.success("Configurações salvas com sucesso!");
+      toast.success("Preços atualizados no Firebase!");
     } catch (error) {
-      toast.error("Erro ao salvar configurações.");
+      toast.error("Erro ao salvar no banco de dados.");
     } finally {
       setLoading(false);
     }
-  };
-
-  if (loading) return <div>Carregando configurações...</div>;
+  }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Configurações de Planos (Admin)</h1>
-      <label>
-        Valor Anual (R$):{" "}
-        <input
-          type="number"
-          step="0.01"
-          value={anualValor}
-          onChange={(e) => setAnualValor(e.target.value)}
-        />
-      </label>
-      <br />
-      <label>
-        Descrição Anual:{" "}
-        <input
-          value={anualDesc}
-          onChange={(e) => setAnualDesc(e.target.value)}
-        />
-      </label>
-      <br />
-      <label>
-        Valor Vitalício (R$):{" "}
-        <input
-          type="number"
-          step="0.01"
-          value={vitalicioValor}
-          onChange={(e) => setVitalicioValor(e.target.value)}
-        />
-      </label>
-      <br />
-      <label>
-        Descrição Vitalícia:{" "}
-        <input
-          value={vitalicioDesc}
-          onChange={(e) => setVitalicioDesc(e.target.value)}
-        />
-      </label>
-      <br />
-      <button onClick={handleSave} disabled={loading}>
-        Salvar
-      </button>
-      <ToastContainer />
+    <div className={styles.container}>
+      <Head>
+        <title>Configurações de Preço - Admin</title>
+      </Head>
+
+      <main
+        className={styles.main}
+        style={{
+          padding: "40px",
+          color: "#fff",
+          backgroundColor: "#0f0f0f",
+          minHeight: "100vh",
+        }}
+      >
+        <h1>Configurar Preços dos Planos</h1>
+
+        <form
+          onSubmit={handleSaveConfig}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+            maxWidth: "500px",
+            marginTop: "20px",
+          }}
+        >
+          <div>
+            <h3>Plano Anual</h3>
+            <label>Valor (ex: 1,00):</label>
+            <input
+              style={{ width: "100%", padding: "10px", borderRadius: "4px" }}
+              value={anualValor}
+              onChange={(e) => setAnualValor(e.target.value)}
+            />
+            <label>Descrição Texto:</label>
+            <input
+              style={{ width: "100%", padding: "10px", borderRadius: "4px" }}
+              value={anualDesc}
+              onChange={(e) => setAnualDesc(e.target.value)}
+            />
+          </div>
+
+          <hr />
+
+          <div>
+            <h3>Plano Vitalício</h3>
+            <label>Valor (ex: 297,00):</label>
+            <input
+              style={{ width: "100%", padding: "10px", borderRadius: "4px" }}
+              value={vitalicioValor}
+              onChange={(e) => setVitalicioValor(e.target.value)}
+            />
+            <label>Descrição Texto:</label>
+            <input
+              style={{ width: "100%", padding: "10px", borderRadius: "4px" }}
+              value={vitalicioDesc}
+              onChange={(e) => setVitalicioDesc(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              padding: "15px",
+              backgroundColor: "#3183ff",
+              color: "#fff",
+              border: 0,
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            {loading ? "Salvando..." : "SALVAR CONFIGURAÇÕES"}
+          </button>
+        </form>
+        <ToastContainer />
+      </main>
     </div>
   );
 }
 
-// Proteja essa página apenas para admins (usando a mesma lógica do seu /admin)
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
-  // Adapte esta verificação para a sua lista de e-mails admin real
-  if (
-    !session?.user ||
-    session.user.email !== "leogomdesenvolvimento@gmail.com"
-  ) {
-    return { redirect: { destination: "/", permanent: false } };
+
+  // SÓ VOCÊ pode acessar essa página
+  if (session?.user?.email !== "leogomdesenvolvimento@gmail.com") {
+    return {
+      redirect: {
+        destination: "/admin",
+        permanent: false,
+      },
+    };
   }
-  return { props: { userEmail: session.user.email } };
+
+  return {
+    props: {
+      userEmail: session.user.email,
+    },
+  };
 };
