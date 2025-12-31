@@ -337,15 +337,6 @@ export default function Dashboard({ user }: HomeProps) {
               >
                 {editingTaskId ? "Atualizar" : "Registrar"}
               </button>
-              <div
-                style={{
-                  marginTop: "10px",
-                  fontSize: "13px",
-                  color: tasks.length >= 45 ? "#ea3140" : "#888",
-                }}
-              >
-                {tasks.length} de 50 tarefas utilizadas
-              </div>
             </form>
           </div>
         </section>
