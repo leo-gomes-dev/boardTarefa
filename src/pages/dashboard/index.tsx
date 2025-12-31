@@ -25,7 +25,6 @@ import {
   doc,
   deleteDoc,
   updateDoc,
-  getDoc,
   serverTimestamp,
 } from "firebase/firestore";
 
@@ -54,7 +53,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
   const [isPremium, setIsPremium] = useState(false);
   const [isEnterprise, setIsEnterprise] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
-
   const [showThanksModal, setShowThanksModal] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,29 +60,32 @@ export default function Dashboard({ user }: { user: { email: string } }) {
 
   const isAdmin = user?.email === "leogomdesenvolvimento@gmail.com";
 
-  // ----- Verificação de Planos -----
+  // ----- Monitoramento de Plano em Tempo Real (Solução para Pix) -----
   useEffect(() => {
-    async function checkPlan() {
-      if (!user?.email) return;
-      const userRef = doc(db, "users", user.email);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data();
+    if (!user?.email) return;
+    const userRef = doc(db, "users", user.email);
+
+    const unsubPlan = onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
         const plan = data.plano || "Free";
 
-        // O segredo aqui é bater com o que o Webhook salva
-        setIsPremium(
-          plan === "Premium Anual" || plan === "Enterprise 36 Meses" || isAdmin
-        );
+        const hasPremium =
+          plan === "Premium Anual" || plan === "Enterprise 36 Meses" || isAdmin;
+        const hasEnterprise = plan === "Enterprise 36 Meses" || isAdmin;
 
-        setIsEnterprise(
-          plan === "Enterprise 36 Meses" || // Substituí "Professional Max" por este
-            isAdmin
-        );
+        // Se o status mudou para premium agora (via Webhook), dispara o modal
+        if (!isPremium && hasPremium && data.status === "premium") {
+          setShowThanksModal(true);
+        }
+
+        setIsPremium(hasPremium);
+        setIsEnterprise(hasEnterprise);
       }
-    }
-    checkPlan();
-  }, [user?.email, isAdmin]);
+    });
+
+    return () => unsubPlan();
+  }, [user?.email, isAdmin, isPremium]);
 
   // ----- Busca de Tarefas e Contagem -----
   useEffect(() => {
@@ -126,26 +127,20 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     };
   }, [user?.email]);
 
+  // Captura retorno do Mercado Pago (Cartão)
   useEffect(() => {
-    // 1. Verifica se a URL contém o status de sucesso do Mercado Pago
     const urlParams = new URLSearchParams(window.location.search);
     const status = urlParams.get("status");
     const paymentId = urlParams.get("payment_id");
-
-    // 2. Verifica no navegador se ele já viu o agradecimento para este pagamento específico
     const alreadyShown = localStorage.getItem(`thanks_${paymentId}`);
 
     if (status === "approved" && paymentId && !alreadyShown) {
       setShowThanksModal(true);
-      // Salva para não mostrar novamente
       localStorage.setItem(`thanks_${paymentId}`, "true");
-
-      // Limpa a URL para ficar bonita (remove os parâmetros do MP)
       window.history.replaceState({}, document.title, "/dashboard");
     }
   }, []);
 
-  // ----- Bloqueio por Plano -----
   function handleActionGuard(
     action: () => void,
     feature: string,
@@ -160,7 +155,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     action();
   }
 
-  // ----- Registro/Atualização de Tarefas -----
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
     if (!isPremium && totalCount >= 30 && !editingTaskId && !isAdmin) {
@@ -199,7 +193,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     }
   }
 
-  // ----- Deletar Tarefas -----
   const handleDeleteTask = async (item: TaskProps) => {
     let isUndone = false;
     const toastId = toast.info(
@@ -239,7 +232,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     );
   };
 
-  // ----- Filtros e Paginação -----
   const filteredTasks = tasks
     .filter((item) => {
       if (!isEnterprise && !isAdmin) return true;
@@ -247,12 +239,13 @@ export default function Dashboard({ user }: { user: { email: string } }) {
       if (filter === "pending") return item.completed === false;
       return true;
     })
-    .sort((a, b) => b.created.getTime() - a.created.getTime()); // Mais recentes no topo
+    .sort((a, b) => b.created.getTime() - a.created.getTime());
 
   const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
-  const indexOfLastTask = currentPage * tasksPerPage;
-  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
-  const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
+  const currentTasks = filteredTasks.slice(
+    (currentPage - 1) * tasksPerPage,
+    currentPage * tasksPerPage
+  );
 
   return (
     <div className={styles.container}>
@@ -260,10 +253,8 @@ export default function Dashboard({ user }: { user: { email: string } }) {
         <title>Painel - OrganizaTask 2026</title>
       </Head>
       <main className={styles.main}>
-        {/* FORMULÁRIO DE TAREFAS */}
         <section className={styles.content}>
           <div className={styles.contentForm}>
-            {/* Header com PDF/Config */}
             <div
               style={{
                 display: "flex",
@@ -278,11 +269,11 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   <button
                     onClick={() => {
                       document.body.classList.add("print-mode");
-                      const prevFilter = filter;
+                      const prev = filter;
                       setFilter("all");
                       setTimeout(() => {
                         window.print();
-                        setFilter(prevFilter);
+                        setFilter(prev);
                         document.body.classList.remove("print-mode");
                       }, 300);
                     }}
@@ -325,7 +316,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
               </div>
             </div>
 
-            {/* Form */}
             <form onSubmit={handleRegisterTask}>
               <Textarea
                 placeholder="O que vamos fazer hoje?"
@@ -334,7 +324,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   setInput(e.target.value)
                 }
               />
-              {/* Prioridade / Checkbox */}
               <div
                 style={{
                   display: "flex",
@@ -376,7 +365,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                     </label>
                   </div>
                 )}
-
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
@@ -431,7 +419,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   ))}
                 </div>
               </div>
-
               <button
                 className={styles.button}
                 type="submit"
@@ -453,7 +440,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           </div>
         </section>
 
-        {/* LISTA DE TAREFAS */}
         <section className={styles.taskContainer}>
           <div style={{ textAlign: "center", marginBottom: "30px" }}>
             <h2>Minhas tarefas ({totalCount})</h2>
@@ -514,13 +500,8 @@ export default function Dashboard({ user }: { user: { email: string } }) {
               }}
             >
               <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                }}
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
               >
-                {/* Texto da tarefa + badge */}
                 <div
                   style={{
                     display: "flex",
@@ -541,8 +522,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   >
                     {item.tarefa}
                   </p>
-
-                  {/* Badge verde para tarefa pública */}
                   {item.public && isEnterprise && (
                     <span
                       style={{
@@ -555,8 +534,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                     />
                   )}
                 </div>
-
-                {/* Checkbox de deixar pública (só Enterprise) - ABAIXO DO TEXTO */}
                 {isEnterprise && (
                   <div
                     style={{
@@ -579,7 +556,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                     </label>
                   </div>
                 )}
-
                 <div
                   style={{
                     display: "flex",
@@ -605,7 +581,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                       color={item.completed ? "#27ae60" : "#5c5c5c"}
                     />
                   </button>
-
                   <button
                     onClick={() =>
                       handleActionGuard(
@@ -629,7 +604,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   >
                     <FaEdit size={20} color="#3183ff" />
                   </button>
-
                   <button
                     onClick={() =>
                       handleActionGuard(
@@ -637,8 +611,8 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                           if (!item.public) {
                             toast.warn(
                               isEnterprise
-                                ? "Esta tarefa não é pública. Marque como pública para compartilhar!"
-                                : "Apenas tarefas Enterprise podem ser públicas!"
+                                ? "Marque como pública para compartilhar!"
+                                : "Requer Plano Enterprise!"
                             );
                             return;
                           }
@@ -665,7 +639,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                       }
                     />
                   </button>
-
                   <button
                     onClick={() => handleDeleteTask(item)}
                     style={{
@@ -681,7 +654,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
             </article>
           ))}
 
-          {/* PAGINAÇÃO */}
           {totalPages > 1 && (
             <div
               style={{
@@ -777,9 +749,8 @@ export default function Dashboard({ user }: { user: { email: string } }) {
             <p
               style={{ color: "#ccc", lineHeight: "1.6", marginBottom: "25px" }}
             >
-              Seu apoio mantém o <strong>OrganizaTask 2026</strong> ativo e em
-              constante evolução. Seu plano já está sendo processado e será
-              ativado em instantes!
+              Seu apoio mantém o <strong>OrganizaTask 2026</strong> ativo. Seu
+              plano já foi ativado!
             </p>
             <button
               onClick={() => setShowThanksModal(false)}
