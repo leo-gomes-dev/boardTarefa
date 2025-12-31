@@ -114,20 +114,42 @@ export default function Premium({
           {currentUserLevel === 0 && (
             <div className={`${styles.card} ${styles.recommended}`}>
               <div className={styles.badge}>RECOMENDADO</div>
-              <h2>Premium Plus</h2>
+              <h2
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  justifyContent: "center",
+                }}
+              >
+                <FaRocket color="#3183ff" size={22} /> Premium Plus
+              </h2>
               <div className={styles.price}>R$ {configs.anualValor}</div>
               <ul className={styles.features}>
                 <li>
                   <FaCheckCircle color="#2ecc71" /> Tarefas Ilimitadas
                 </li>
                 <li>
-                  <FaCheckCircle color="#2ecc71" /> Prioridade Média e Alta
+                  <FaCheckCircle color="#2ecc71" /> Prioridades Baixa, Média e
+                  Alta
                 </li>
                 <li>
-                  <FaCheckCircle color="#2ecc71" /> Editar e Compartilhar
+                  <FaCheckCircle color="#2ecc71" /> Editar Tarefa
+                </li>
+                <li>
+                  <FaCheckCircle color="#2ecc71" /> Suporte Prioritário
                 </li>
                 <li style={{ opacity: 0.5 }}>
-                  <FaTimes color="#ea3140" /> Filtros e PDF
+                  <FaTimes color="#ea3140" /> Filtros Habilitados
+                </li>
+                <li style={{ opacity: 0.5 }}>
+                  <FaTimes color="#ea3140" /> Exportar para PDF
+                </li>
+                <li style={{ opacity: 0.5 }}>
+                  <FaTimes color="#ea3140" /> Deixar tarefa pública
+                </li>
+                <li style={{ opacity: 0.5 }}>
+                  <FaTimes color="#ea3140" /> Compartilhar Tarefa
                 </li>
               </ul>
               <button
@@ -144,7 +166,16 @@ export default function Premium({
           {/* ENTERPRISE – para FREE e PREMIUM */}
           {currentUserLevel < 2 && (
             <div className={styles.card}>
-              <h2>Professional Max</h2>
+              <h2
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  justifyContent: "center",
+                }}
+              >
+                <FaCheckCircle color="#3183ff" size={22} /> Professional Max
+              </h2>
               <div className={styles.price}>R$ {configs.trienalValor}</div>
               <ul className={styles.features}>
                 <li>
@@ -158,6 +189,9 @@ export default function Premium({
                 </li>
                 <li>
                   <FaCheckCircle color="#2ecc71" /> Deixar tarefa pública
+                </li>
+                <li>
+                  <FaCheckCircle color="#2ecc71" /> Compartilhar Tarefa
                 </li>
               </ul>
               <button

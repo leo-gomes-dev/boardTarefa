@@ -325,7 +325,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   marginTop: "15px",
                 }}
               >
-                {(isEnterprise || isAdmin) && (
+                {isEnterprise && (
                   <div
                     style={{
                       display: "flex",
@@ -560,7 +560,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   </div>
                 )}
 
-                {/* Botões da tarefa (embaixo para não quebrar o layout) */}
                 <div
                   style={{
                     display: "flex",

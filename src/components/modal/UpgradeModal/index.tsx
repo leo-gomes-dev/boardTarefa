@@ -24,7 +24,7 @@ export function UpgradeModal({ closeModal, featureName }: UpgradeModalProps) {
 
         <div className={styles.modalActions}>
           <Link href="/premium?fromModal=true" className={styles.linkBuy}>
-            BORA, QUERO O PREMIUM! 🚀
+            BORA, QUERO O ENTERPRISE! 🚀
           </Link>
 
           <button onClick={closeModal} className={styles.buttonClose}>
