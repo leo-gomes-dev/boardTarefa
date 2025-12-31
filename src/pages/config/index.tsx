@@ -22,30 +22,20 @@ export default function PaginaConfiguracoes({
 
   useEffect(() => {
     async function loadConfigs() {
-      if (!userEmail) return;
-      try {
-        const userRef = doc(db, "users", userEmail);
-        const docSnap = await getDoc(userRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          // Carregando Basic
-          setBasicValor(data.planoBasicValor || "0,00");
-          setBasicDesc(data.planoBasicDescricao || "Grátis para iniciantes");
-          // Carregando Anual
-          setAnualValor(data.planoAnualValor || "118,80");
-          setAnualDesc(data.planoAnualDescricao || "Equivalente a R$ 9,90/mês");
-          // Carregando Trienal (Substituindo Vitalício)
-          setTrienalValor(data.planoTrienalValor || "297,00");
-          setTrienalDesc(
-            data.planoTrienalDescricao || "Economia máxima por 3 anos"
-          );
-        }
-      } catch (e) {
-        console.error("Erro ao carregar:", e);
-      } finally {
-        setLoading(false);
+      const userRef = doc(db, "users", userEmail);
+      const docSnap = await getDoc(userRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setBasicValor(data.planoBasicValor || "0,00");
+        setBasicDesc(data.planoBasicDescricao || "Grátis para sempre");
+        setAnualValor(data.planoAnualValor || "118,80");
+        setAnualDesc(data.planoAnualDescricao || "R$ 9,90 por mês");
+        setTrienalValor(data.planoTrienalValor || "284,40");
+        setTrienalDesc(
+          data.planoTrienalDescricao || "R$ 7,90 por mês (Melhor preço)"
+        );
       }
+      setLoading(false);
     }
     loadConfigs();
   }, [userEmail]);
@@ -53,12 +43,9 @@ export default function PaginaConfiguracoes({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const userRef = doc(db, "users", userEmail);
-
       await setDoc(
-        userRef,
+        doc(db, "users", userEmail),
         {
           planoBasicValor: basicValor,
           planoBasicDescricao: basicDesc,
@@ -71,31 +58,13 @@ export default function PaginaConfiguracoes({
         },
         { merge: true }
       );
-
-      toast.success("🔥 TODOS OS 03 PLANOS ATUALIZADOS!");
-    } catch (error: any) {
-      toast.error(`ERRO: ${error.message || "Erro ao salvar"}`);
+      toast.success("PREÇOS ATUALIZADOS PARA 2026!");
+    } catch {
+      toast.error("Erro ao salvar.");
     } finally {
       setLoading(false);
     }
   }
-
-  const inputStyle = {
-    width: "100%",
-    padding: "12px",
-    margin: "8px 0",
-    background: "#000",
-    color: "#fff",
-    border: "1px solid #333",
-    borderRadius: "4px",
-  };
-
-  const cardStyle = {
-    background: "#1a1a1a",
-    padding: "20px",
-    borderRadius: "8px",
-    borderLeft: "4px solid",
-  };
 
   return (
     <div
@@ -106,100 +75,96 @@ export default function PaginaConfiguracoes({
         padding: "40px",
       }}
     >
-      <Head>
-        <title>Painel Admin 2026 - OrganizaTask</title>
-      </Head>
-      <main style={{ maxWidth: "700px", margin: "0 auto" }}>
-        <h1 style={{ marginBottom: "10px" }}>Configurações de Preços</h1>
-        <p style={{ color: "#94a3b8", marginBottom: "30px" }}>
-          Admin: {userEmail}
-        </p>
-
+      <main style={{ maxWidth: "600px", margin: "0 auto" }}>
+        <h1>Painel Admin - Preços Acadêmicos</h1>
         <form
           onSubmit={handleSave}
-          style={{ display: "flex", flexDirection: "column", gap: "25px" }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+            marginTop: "20px",
+          }}
         >
-          {/* CONFIG BASIC */}
-          <div style={{ ...cardStyle, borderLeftColor: "#94a3b8" }}>
-            <h3 style={{ color: "#94a3b8" }}>1. Plano Basic (Starter)</h3>
-            <input
-              style={inputStyle}
-              value={basicValor}
-              onChange={(e) => setBasicValor(e.target.value)}
-              placeholder="Valor (ex: 0,00)"
-            />
-            <input
-              style={inputStyle}
-              value={basicDesc}
-              onChange={(e) => setBasicDesc(e.target.value)}
-              placeholder="Descrição curta"
-            />
-          </div>
-
-          {/* CONFIG ANUAL */}
-          <div style={{ ...cardStyle, borderLeftColor: "#3183ff" }}>
-            <h3 style={{ color: "#3183ff" }}>2. Plano Anual (Premium Plus)</h3>
-            <input
-              style={inputStyle}
-              value={anualValor}
-              onChange={(e) => setAnualValor(e.target.value)}
-              placeholder="Valor (ex: 118,80)"
-            />
-            <input
-              style={inputStyle}
-              value={anualDesc}
-              onChange={(e) => setAnualDesc(e.target.value)}
-              placeholder="Descrição curta"
-            />
-          </div>
-
-          {/* CONFIG TRIENAL */}
-          <div style={{ ...cardStyle, borderLeftColor: "#e74c3c" }}>
-            <h3 style={{ color: "#e74c3c" }}>
-              3. Plano 36 Meses (Enterprise Gold)
-            </h3>
-            <input
-              style={inputStyle}
-              value={trienalValor}
-              onChange={(e) => setTrienalValor(e.target.value)}
-              placeholder="Valor (ex: 297,00)"
-            />
-            <input
-              style={inputStyle}
-              value={trienalDesc}
-              onChange={(e) => setTrienalDesc(e.target.value)}
-              placeholder="Descrição curta"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
+          <div
             style={{
-              padding: "18px",
-              background: "#3183ff",
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: "1rem",
-              cursor: "pointer",
-              border: "none",
+              background: "#1a1a1a",
+              padding: "20px",
               borderRadius: "8px",
-              transition: "0.2s",
             }}
           >
-            {loading ? "SALVANDO..." : "PUBLICAR NOVOS PREÇOS"}
+            <h3>Plano Basic</h3>
+            <input
+              style={{ width: "100%", padding: "10px", margin: "5px 0" }}
+              value={basicValor}
+              onChange={(e) => setBasicValor(e.target.value)}
+            />
+            <input
+              style={{ width: "100%", padding: "10px" }}
+              value={basicDesc}
+              onChange={(e) => setBasicDesc(e.target.value)}
+            />
+          </div>
+          <div
+            style={{
+              background: "#1a1a1a",
+              padding: "20px",
+              borderRadius: "8px",
+            }}
+          >
+            <h3>Plano Anual</h3>
+            <input
+              style={{ width: "100%", padding: "10px", margin: "5px 0" }}
+              value={anualValor}
+              onChange={(e) => setAnualValor(e.target.value)}
+            />
+            <input
+              style={{ width: "100%", padding: "10px" }}
+              value={anualDesc}
+              onChange={(e) => setAnualDesc(e.target.value)}
+            />
+          </div>
+          <div
+            style={{
+              background: "#1a1a1a",
+              padding: "20px",
+              borderRadius: "8px",
+            }}
+          >
+            <h3>Plano Trienal (36 Meses)</h3>
+            <input
+              style={{ width: "100%", padding: "10px", margin: "5px 0" }}
+              value={trienalValor}
+              onChange={(e) => setTrienalValor(e.target.value)}
+            />
+            <input
+              style={{ width: "100%", padding: "10px" }}
+              value={trienalDesc}
+              onChange={(e) => setTrienalDesc(e.target.value)}
+            />
+          </div>
+          <button
+            type="submit"
+            style={{
+              padding: "15px",
+              background: "#3183ff",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            {loading ? "SALVANDO..." : "ATUALIZAR TUDO AGORA"}
           </button>
         </form>
-        <ToastContainer theme="dark" />
       </main>
+      <ToastContainer theme="dark" />
     </div>
   );
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
-  if (session?.user?.email !== "leogomdesenvolvimento@gmail.com") {
+  if (session?.user?.email !== "leogomdesenvolvimento@gmail.com")
     return { redirect: { destination: "/", permanent: false } };
-  }
   return { props: { userEmail: session.user.email } };
 };
