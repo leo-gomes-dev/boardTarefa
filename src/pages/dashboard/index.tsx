@@ -26,7 +26,7 @@ import {
   deleteDoc,
   updateDoc,
   getDoc,
-  limit,
+  serverTimestamp,
 } from "firebase/firestore";
 
 interface TaskProps {
@@ -55,9 +55,12 @@ export default function Dashboard({ user }: { user: { email: string } }) {
   const [isEnterprise, setIsEnterprise] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const tasksPerPage = 10;
+
   const isAdmin = user?.email === "leogomdesenvolvimento@gmail.com";
 
-  // Verificação de Planos 2026
+  // ----- Verificação de Planos -----
   useEffect(() => {
     async function checkPlan() {
       if (!user?.email) return;
@@ -66,7 +69,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
       if (userSnap.exists()) {
         const data = userSnap.data();
         const plan = data.plano || "Free";
-
         setIsPremium(
           plan === "Premium Anual" ||
             plan === "Professional Max" ||
@@ -83,9 +85,10 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     checkPlan();
   }, [user?.email, isAdmin]);
 
-  // Busca de Tarefas e Contagem
+  // ----- Busca de Tarefas e Contagem -----
   useEffect(() => {
     if (!user?.email) return;
+
     const qCount = query(
       collection(db, "tarefas"),
       where("user", "==", user.email)
@@ -97,11 +100,10 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     const q = query(
       collection(db, "tarefas"),
       where("user", "==", user.email),
-      orderBy("created", "desc"),
-      limit(30)
+      orderBy("created", "desc")
     );
     const unsubTasks = onSnapshot(q, (snapshot) => {
-      let lista = [] as TaskProps[];
+      const lista: TaskProps[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
         lista.push({
@@ -116,13 +118,14 @@ export default function Dashboard({ user }: { user: { email: string } }) {
       });
       setTasks(lista);
     });
+
     return () => {
       unsubCount();
       unsubTasks();
     };
   }, [user?.email]);
 
-  // Bloqueio por Plano
+  // ----- Bloqueio por Plano -----
   function handleActionGuard(
     action: () => void,
     feature: string,
@@ -137,13 +140,14 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     action();
   }
 
+  // ----- Registro/Atualização de Tarefas -----
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
     if (!isPremium && totalCount >= 30 && !editingTaskId && !isAdmin) {
       setShowLimitModal(true);
       return;
     }
-    if (input.trim() === "") {
+    if (!input.trim()) {
       toast.warn("Digite uma tarefa");
       return;
     }
@@ -159,7 +163,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
       } else {
         await addDoc(collection(db, "tarefas"), {
           tarefa: input,
-          created: new Date(),
+          created: serverTimestamp(),
           user: user.email,
           public: publicTask,
           completed: false,
@@ -175,13 +179,13 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     }
   }
 
+  // ----- Deletar Tarefas -----
   const handleDeleteTask = async (item: TaskProps) => {
     let isUndone = false;
     const toastId = toast.info(
       <div
         style={{
           display: "flex",
-          alignItems: "center",
           justifyContent: "space-between",
           width: "100%",
         }}
@@ -202,8 +206,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
             fontWeight: "bold",
           }}
         >
-          {" "}
-          Desfazer{" "}
+          Desfazer
         </button>
       </div>,
       {
@@ -216,12 +219,20 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     );
   };
 
-  const filteredTasks = tasks.filter((item) => {
-    if (!isEnterprise && !isAdmin) return true;
-    if (filter === "completed") return item.completed === true;
-    if (filter === "pending") return item.completed === false;
-    return true;
-  });
+  // ----- Filtros e Paginação -----
+  const filteredTasks = tasks
+    .filter((item) => {
+      if (!isEnterprise && !isAdmin) return true;
+      if (filter === "completed") return item.completed === true;
+      if (filter === "pending") return item.completed === false;
+      return true;
+    })
+    .sort((a, b) => b.created.getTime() - a.created.getTime()); // Mais recentes no topo
+
+  const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+  const indexOfLastTask = currentPage * tasksPerPage;
+  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+  const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
 
   return (
     <div className={styles.container}>
@@ -229,8 +240,10 @@ export default function Dashboard({ user }: { user: { email: string } }) {
         <title>Painel - OrganizaTask 2026</title>
       </Head>
       <main className={styles.main}>
+        {/* FORMULÁRIO DE TAREFAS */}
         <section className={styles.content}>
           <div className={styles.contentForm}>
+            {/* Header com PDF/Config */}
             <div
               style={{
                 display: "flex",
@@ -244,16 +257,13 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                 {isEnterprise && (
                   <button
                     onClick={() => {
-                      // Adiciona classe temporária para print
                       document.body.classList.add("print-mode");
-
-                      const prevFilter = filter; // guarda filtro atual
-                      setFilter("all"); // mostra todas as tasks para PDF
-
+                      const prevFilter = filter;
+                      setFilter("all");
                       setTimeout(() => {
                         window.print();
-                        setFilter(prevFilter); // restaura filtro original
-                        document.body.classList.remove("print-mode"); // remove classe
+                        setFilter(prevFilter);
+                        document.body.classList.remove("print-mode");
                       }, 300);
                     }}
                     style={{
@@ -295,6 +305,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
               </div>
             </div>
 
+            {/* Form */}
             <form onSubmit={handleRegisterTask}>
               <Textarea
                 placeholder="O que vamos fazer hoje?"
@@ -303,7 +314,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   setInput(e.target.value)
                 }
               />
-
+              {/* Prioridade / Checkbox */}
               <div
                 style={{
                   display: "flex",
@@ -345,7 +356,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                     </label>
                   </div>
                 )}
-
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
@@ -395,8 +405,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                           !isPremium && p !== "baixa" && !isAdmin ? 0.4 : 1,
                       }}
                     >
-                      {" "}
-                      {p.toUpperCase()}{" "}
+                      {p.toUpperCase()}
                     </button>
                   ))}
                 </div>
@@ -423,6 +432,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           </div>
         </section>
 
+        {/* LISTA DE TAREFAS */}
         <section className={styles.taskContainer}>
           <div style={{ textAlign: "center", marginBottom: "30px" }}>
             <h2>Minhas tarefas ({totalCount})</h2>
@@ -464,7 +474,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
             </div>
           </div>
 
-          {filteredTasks.map((item) => (
+          {currentTasks.map((item) => (
             <article
               key={item.id}
               className={styles.task}
@@ -578,6 +588,59 @@ export default function Dashboard({ user }: { user: { email: string } }) {
               </div>
             </article>
           ))}
+
+          {/* PAGINAÇÃO */}
+          {totalPages > 1 && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: "10px",
+                marginTop: "20px",
+              }}
+            >
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "5px",
+                  border: "1px solid #3183ff",
+                  backgroundColor: currentPage === 1 ? "#4b4b4b" : "#3183ff",
+                  color: "#fff",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                }}
+              >
+                Anterior
+              </button>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  color: "#fff",
+                }}
+              >
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "5px",
+                  border: "1px solid #3183ff",
+                  backgroundColor:
+                    currentPage === totalPages ? "#4b4b4b" : "#3183ff",
+                  color: "#fff",
+                  cursor:
+                    currentPage === totalPages ? "not-allowed" : "pointer",
+                }}
+              >
+                Próximo
+              </button>
+            </div>
+          )}
         </section>
       </main>
 
