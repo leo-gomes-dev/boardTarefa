@@ -87,7 +87,7 @@ export default function Premium() {
             </ul>
 
             <a
-              href="pagamento.leogomesdev.com.br"
+              href="/pagamento"
               className={`${styles.buyButton} ${styles.outline}`}
             >
               ADQUIRIR VITALÍCIO
