@@ -96,29 +96,38 @@ export default function Dashboard({ user }: HomeProps) {
 
     try {
       if (editingTaskId) {
+        // Lógica de Edição (não conta para o limite)
         const docRef = doc(db, "tarefas", editingTaskId);
         await updateDoc(docRef, {
           tarefa: input,
           public: publicTask,
-          priority: priority, // Atualiza a prioridade ao editar
+          priority: priority,
         });
         setEditingTaskId(null);
         toast.success("Tarefa atualizada!");
       } else {
+        // Lógica de Novo Registro (Aqui aplicamos o limite)
+        if (tasks.length >= 50) {
+          toast.error("Limite atingido! Você só pode ter 50 tarefas.");
+          return; // Interrompe a execução aqui
+        }
+
         await addDoc(collection(db, "tarefas"), {
           tarefa: input,
           created: new Date(),
           user: user?.email,
           public: publicTask,
           completed: false,
-          priority: priority, // Salva a prioridade selecionada
+          priority: priority,
         });
         toast.success("Tarefa registrada!");
       }
+
       setInput("");
-      setPriority("baixa"); // Reseta para o padrão
+      setPriority("baixa");
     } catch (err) {
       console.log(err);
+      toast.error("Erro ao salvar tarefa.");
     }
   }
 
@@ -317,6 +326,27 @@ export default function Dashboard({ user }: HomeProps) {
                   Cancelar Edição
                 </button>
               )}
+              {/* Adicione isso logo abaixo do seu formulário ou dentro dele */}
+              <p
+                style={{
+                  color: tasks.length >= 50 ? "#ea3140" : "#ccc",
+                  fontSize: "14px",
+                  marginTop: "5px",
+                }}
+              >
+                {tasks.length} / 50 tarefas utilizadas
+              </p>
+
+              <button
+                className={styles.button}
+                type="submit"
+                disabled={!editingTaskId && tasks.length >= 50}
+                style={{
+                  opacity: !editingTaskId && tasks.length >= 50 ? 0.5 : 1,
+                }}
+              >
+                {editingTaskId ? "Atualizar" : "Registrar"}
+              </button>
             </form>
           </div>
         </section>
