@@ -1,0 +1,171 @@
+.container {
+  min-height: 100vh;
+  background-color: #0a0a0a;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.main {
+  width: 100%;
+  max-width: 900px;
+}
+
+.backLink {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.checkoutWrapper {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  background: #17181f;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.summary {
+  background: #1e1f29;
+  padding: 40px;
+  border-right: 1px solid #333;
+}
+
+.summary h2 {
+  font-size: 1.2rem;
+  color: #888;
+  margin-bottom: 20px;
+}
+
+.planInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.disclaimer {
+  font-size: 0.8rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.secureBadge {
+  margin-top: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #2ecc71;
+  font-size: 0.9rem;
+}
+
+.paymentBox {
+  padding: 40px;
+}
+
+.paymentBox h1 {
+  font-size: 1.5rem;
+  margin-bottom: 30px;
+}
+
+.methods {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.methods button {
+  flex: 1;
+  padding: 12px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.methods button.active {
+  border-color: #3183ff;
+  background: rgba(49, 131, 255, 0.1);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form input {
+  padding: 15px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.payButton {
+  background: #2ecc71;
+  color: #fff;
+  border: none;
+  padding: 18px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.pixArea {
+  text-align: center;
+  padding: 20px;
+  background: #0a0a0a;
+  border-radius: 8px;
+}
+
+.pixArea span {
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+.footerSecure {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* RESPONSIVO */
+@media (max-width: 768px) {
+  .checkoutWrapper {
+    grid-template-columns: 1fr;
+  }
+  .summary {
+    border-right: none;
+    border-bottom: 1px solid #333;
+    padding: 25px;
+  }
+  .paymentBox {
+    padding: 25px;
+  }
+}

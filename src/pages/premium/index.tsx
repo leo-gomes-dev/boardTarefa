@@ -53,7 +53,7 @@ export default function Premium() {
               </li>
             </ul>
 
-            <a href="pagamento.leogomesdev.com.br" className={styles.buyButton}>
+            <a href="/pagamento" className={styles.buyButton}>
               ASSINAR AGORA
             </a>
           </div>
