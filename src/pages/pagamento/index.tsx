@@ -4,13 +4,7 @@ import styles from "./styles.module.css";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useSession } from "next-auth/react"; // Importante para o e-mail do cliente
-import {
-  FaLock,
-  FaCreditCard,
-  FaBarcode,
-  FaShieldAlt,
-  FaArrowLeft,
-} from "react-icons/fa";
+import { FaLock, FaShieldAlt, FaArrowLeft } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -18,7 +12,6 @@ export default function Pagamento() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  const [metodo, setMetodo] = useState("cartao");
   const [loading, setLoading] = useState(false);
   const [nomePlano, setNomePlano] = useState("Carregando...");
   const [valorPlano, setValorPlano] = useState("0,00");
@@ -32,12 +25,21 @@ export default function Pagamento() {
       setNomePlano(String(planoQuery));
       setValorPlano(String(valorQuery));
       setIsDataLoaded(true);
+
+      // DISPARAR O REDIRECIONAMENTO ASSIM QUE CARREGAR?
+      // handleCheckout();
     }
   }, [router.isReady, router.query]);
 
-  // Função que integra com o Stripe
-  async function handleCheckout(e: React.FormEvent) {
-    e.preventDefault();
+  // Função que integra com o Mercado Pago
+  async function handleCheckout(e?: React.FormEvent) {
+    e?.preventDefault(); // Previne comportamento padrão se for chamado de um botão
+
+    if (!session?.user?.email) {
+      toast.error("Você precisa estar logado.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -54,7 +56,7 @@ export default function Pagamento() {
       const data = await response.json();
 
       if (data.url) {
-        // Redireciona para o checkout seguro do Stripe (Cartão ou Pix)
+        // Redireciona para o checkout seguro do Mercado Pago (Pix, Cartão, Boleto)
         window.location.href = data.url;
       } else {
         throw new Error(data.error || "Erro ao gerar checkout");
@@ -102,34 +104,16 @@ export default function Pagamento() {
           <section className={styles.paymentBox}>
             <h1>Checkout Seguro</h1>
 
-            <div className={styles.methods}>
-              <button
-                type="button"
-                className={metodo === "cartao" ? styles.active : ""}
-                onClick={() => setMetodo("cartao")}
-              >
-                <FaCreditCard /> Cartão de Crédito
-              </button>
-              <button
-                type="button"
-                className={metodo === "pix" ? styles.active : ""}
-                onClick={() => setMetodo("pix")}
-              >
-                <FaBarcode /> Pix
-              </button>
-            </div>
+            {/* A escolha de método de pagamento foi removida pois o MP faz isso automaticamente */}
 
             <form className={styles.form} onSubmit={handleCheckout}>
               <div className={styles.pixArea}>
                 <p>
                   Ao clicar no botão abaixo, você será redirecionado para a
                   página segura do
-                  <strong> Stripe</strong> para concluir o pagamento via{" "}
-                  {metodo === "cartao" ? "Cartão" : "Pix"}.
+                  <strong> Mercado Pago</strong> para concluir o pagamento via
+                  Cartão, Boleto ou Pix.
                 </p>
-                {metodo === "pix" && (
-                  <span>Liberação instantânea via Pix!</span>
-                )}
               </div>
 
               <button
@@ -137,12 +121,12 @@ export default function Pagamento() {
                 className={styles.payButton}
                 disabled={loading}
               >
-                {loading ? "PROCESSANDO..." : `PAGAR R$ ${valorPlano}`}
+                {loading ? "PROCESSANDO..." : `IR PARA O PAGAMENTO`}
               </button>
             </form>
 
             <div className={styles.footerSecure}>
-              <FaShieldAlt /> Processado com segurança por Stripe
+              <FaShieldAlt /> Processado com segurança por Mercado Pago
             </div>
           </section>
         </div>
