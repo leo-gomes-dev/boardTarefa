@@ -69,14 +69,28 @@ export default function Dashboard({ user }: { user: { email: string } }) {
       if (snapshot.exists()) {
         const data = snapshot.data();
         const plan = data.plano || "Free";
+        const currentPaymentId = data.paymentId; // Pega o ID salvo pelo Webhook
 
         const hasPremium =
           plan === "Premium Anual" || plan === "Enterprise 36 Meses" || isAdmin;
         const hasEnterprise = plan === "Enterprise 36 Meses" || isAdmin;
 
-        // Se o status mudou para premium agora (via Webhook), dispara o modal
-        if (!isPremium && hasPremium && data.status === "premium") {
-          setShowThanksModal(true);
+        // NOVA TRAVA: Só abre se o status for premium E este pagamento ainda não foi mostrado neste navegador
+        if (
+          !isPremium &&
+          hasPremium &&
+          data.status === "premium" &&
+          currentPaymentId
+        ) {
+          const alreadyShown = localStorage.getItem(
+            `thanks_shown_${currentPaymentId}`
+          );
+
+          if (!alreadyShown) {
+            setShowThanksModal(true);
+            // Marca como mostrado imediatamente para não repetir se o snapshot disparar de novo
+            localStorage.setItem(`thanks_shown_${currentPaymentId}`, "true");
+          }
         }
 
         setIsPremium(hasPremium);
@@ -758,17 +772,10 @@ export default function Dashboard({ user }: { user: { email: string } }) {
             </p>
             <button
               onClick={() => {
-                // 1. Identifica o pagamento atual pela URL
-                const params = new URLSearchParams(window.location.search);
-                const paymentId = params.get("payment_id");
-
-                // 2. Salva no navegador que este pagamento já foi visualizado
-                if (paymentId) {
-                  localStorage.setItem(`thanks_shown_${paymentId}`, "true");
-                }
-
-                // 3. Limpa a URL e fecha o modal
+                // 1. Limpa a URL visualmente para remover o status=approved
                 window.history.replaceState({}, document.title, "/dashboard");
+
+                // 2. Fecha o modal
                 setShowThanksModal(false);
               }}
               style={{
