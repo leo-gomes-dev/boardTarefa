@@ -34,27 +34,20 @@ export default function Premium({ configs }: PremiumProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function handleCheckout(plano: string, valor: string) {
-    // 1. LÓGICA PARA USUÁRIO DESLOGADO
+  async function handleAction(plano: string, valor: string) {
+    // SE NÃO ESTIVER LOGADO: Força login e volta para esta página
     if (!session) {
-      toast.info("Faça login para continuar com sua assinatura.", {
-        theme: "dark",
-      });
-
-      // O segredo está aqui: salvamos o callbackUrl para ele voltar para cá após o login
-      setTimeout(() => {
-        signIn("google", { callbackUrl: "/premium" });
-      }, 1000);
+      signIn("google", { callbackUrl: "/premium" });
       return;
     }
 
-    // 2. LÓGICA PARA PLANO FREE (LOGADO)
+    // SE ESTIVER LOGADO E ESCOLHER O FREE: Vai para Dashboard
     if (plano === "Basic Free") {
       router.push("/dashboard");
       return;
     }
 
-    // 3. LÓGICA MERCADO PAGO (LOGADO)
+    // SE ESTIVER LOGADO E ESCOLHER PLANO PAGO: Vai para Mercado Pago
     setLoading(true);
     try {
       const response = await fetch("/api/checkout", {
@@ -69,14 +62,12 @@ export default function Premium({ configs }: PremiumProps) {
 
       const data = await response.json();
       if (data.url) {
-        window.location.href = data.url; // Redireciona para o Mercado Pago
+        window.location.href = data.url;
       } else {
         throw new Error();
       }
     } catch {
-      toast.error("Erro ao gerar pagamento. Tente novamente.", {
-        theme: "dark",
-      });
+      toast.error("Erro ao processar pagamento.", { theme: "dark" });
     } finally {
       setLoading(false);
     }
@@ -85,26 +76,25 @@ export default function Premium({ configs }: PremiumProps) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Planos e Acesso - OrganizaTask</title>
+        <title>Planos OrganizaTask 2026</title>
       </Head>
       <main className={styles.main}>
         <section className={styles.header}>
           <FaRocket size={50} color="#3183ff" />
           <h1>
-            {session ? `Olá, ${session.user?.name}!` : "Escolha seu plano"}
+            {session ? `Quase lá, ${session.user?.name}!` : "Escolha seu plano"}
           </h1>
-          <p>O primeiro passo para uma rotina de alta performance em 2026.</p>
+          <p>Selecione como deseja organizar seus projetos em 2026.</p>
         </section>
 
         <div className={styles.plansArea}>
-          {/* FREE */}
+          {/* PLANO FREE */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaUser size={30} color="#94a3b8" />
               <span>INDIVIDUAL</span>
               <h2>Free Starter</h2>
               <div className={styles.price}>R$ {configs.basicValor}</div>
-              <p>{configs.basicDesc}</p>
             </div>
             <ul className={styles.features}>
               <li>
@@ -115,14 +105,14 @@ export default function Premium({ configs }: PremiumProps) {
               </li>
             </ul>
             <button
-              onClick={() => handleCheckout("Basic Free", configs.basicValor)}
+              onClick={() => handleAction("Basic Free", configs.basicValor)}
               className={`${styles.buyButton} ${styles.outline}`}
             >
-              {session ? "ACESSAR AGORA" : "LOGAR PARA ACESSAR"}
+              {session ? "ACESSAR DASHBOARD" : "LOGAR E ACESSAR"}
             </button>
           </div>
 
-          {/* ANUAL */}
+          {/* PLANO ANUAL */}
           <div className={`${styles.card} ${styles.recommended}`}>
             <div className={styles.badge}>MAIS RECOMENDADO</div>
             <div className={styles.cardHeader}>
@@ -130,7 +120,6 @@ export default function Premium({ configs }: PremiumProps) {
               <span>PREMIUM</span>
               <h2>Premium Plus</h2>
               <div className={styles.price}>R$ {configs.anualValor}</div>
-              <p>{configs.anualDesc}</p>
             </div>
             <ul className={styles.features}>
               <li>
@@ -141,24 +130,21 @@ export default function Premium({ configs }: PremiumProps) {
               </li>
             </ul>
             <button
-              onClick={() =>
-                handleCheckout("Premium Anual", configs.anualValor)
-              }
+              onClick={() => handleAction("Premium Anual", configs.anualValor)}
               disabled={loading}
               className={styles.buyButton}
             >
-              {loading ? "PROCESSANDO..." : "ASSINAR AGORA"}
+              {loading ? "GERANDO TICKET..." : "ASSINAR AGORA"}
             </button>
           </div>
 
-          {/* TRIENAL */}
+          {/* PLANO TRIENAL */}
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <FaCrown size={30} color="#e74c3c" />
               <span>PROFISSIONAL</span>
               <h2>Professional Max</h2>
               <div className={styles.price}>R$ {configs.trienalValor}</div>
-              <p>{configs.trienalDesc}</p>
             </div>
             <ul className={styles.features}>
               <li>
@@ -170,19 +156,14 @@ export default function Premium({ configs }: PremiumProps) {
             </ul>
             <button
               onClick={() =>
-                handleCheckout("Enterprise 36 Meses", configs.trienalValor)
+                handleAction("Enterprise 36 Meses", configs.trienalValor)
               }
               disabled={loading}
               className={`${styles.buyButton} ${styles.darkButton}`}
             >
-              {loading ? "PROCESSANDO..." : "GARANTIR ACESSO MAX"}
+              {loading ? "GERANDO TICKET..." : "GARANTIR ACESSO MAX"}
             </button>
           </div>
-        </div>
-
-        <div className={styles.secure}>
-          <FaShieldAlt size={14} />
-          <span>Checkout Seguro via Mercado Pago</span>
         </div>
       </main>
       <ToastContainer theme="dark" />

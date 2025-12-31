@@ -4,16 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 
 export function Header() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
 
-  const isHomePage = router.pathname === "/"; // Identifica a Home
+  // Constantes de Verificação de Rota
+  const isHomePage = router.pathname === "/";
+  const isSalesPage = router.pathname === "/premium";
   const isOnAdminPage = router.pathname === "/admin";
   const isDashboardPage = router.pathname === "/dashboard";
 
-  const isSalesPage =
-    router.pathname === "/premium" || router.pathname === "/pagamento";
-
+  // Lista de e-mails permitidos para acesso à página admin
   const allowedAdminEmails = [
     "leogomdesenvolvimento@gmail.com",
     "leogomesdeveloper@gmail.com",
@@ -31,12 +31,14 @@ export function Header() {
             <h1 className={styles.logo}>Tasks</h1>
           </Link>
 
+          {/* Link Painel: Mostra se logado, exceto se já estiver no Dashboard ou no Premium */}
           {session?.user && !isDashboardPage && !isSalesPage && (
             <Link href="/dashboard" className={styles.link}>
               Painel
             </Link>
           )}
 
+          {/* Link Admin: Mostra se for admin e não estiver na página de vendas */}
           {!isOnAdminPage && isAdminUser && !isSalesPage && (
             <Link href="/admin" className={styles.link}>
               Admin
@@ -45,11 +47,12 @@ export function Header() {
         </nav>
 
         {/* 
-            LÓGICA DE UX 2026: 
-            O botão só aparece se NÃO estiver na Home OU se o usuário já estiver logado.
-            Se estiver na Home e deslogado, ele usa o botão central da página para entrar.
+            LÓGICA DE LOGIN 2026: 
+            O botão de login é OCULTADO na Home e na página Premium para usuários deslogados,
+            pois estas páginas já possuem botões centrais de ação.
+            Se o usuário já estiver logado, o botão sempre aparece para permitir o Logout.
         */}
-        {(!isHomePage || session) && (
+        {((!isHomePage && !isSalesPage) || session) && (
           <button
             className={styles.loginButton}
             onClick={() => (session ? signOut() : signIn("google"))}
