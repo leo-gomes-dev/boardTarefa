@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import { getSession } from "next-auth/react";
 import { GetServerSideProps } from "next";
-import { db } from "../../services/firebaseConnection"; // Ajustado para a raiz de pages
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "../../services/firebaseConnection";
+import { doc, getDoc, setDoc } from "firebase/firestore"; // Alterado para setDoc
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -49,14 +49,23 @@ export default function PaginaConfiguracoes({
     setLoading(true);
     try {
       const userRef = doc(db, "users", userEmail);
-      await updateDoc(userRef, {
-        planoAnualValor: anualValor,
-        planoAnualDescricao: anualDesc,
-        planoVitalicioValor: vitalicioValor,
-        planoVitalicioDescricao: vitalicioDesc,
-      });
+
+      // setDoc com merge: true resolve o erro de salvar caso o documento não exista
+      await setDoc(
+        userRef,
+        {
+          planoAnualValor: anualValor,
+          planoAnualDescricao: anualDesc,
+          planoVitalicioValor: vitalicioValor,
+          planoVitalicioDescricao: vitalicioDesc,
+          lastUpdate: new Date(),
+        },
+        { merge: true }
+      );
+
       toast.success("Preços atualizados com sucesso!");
     } catch (error) {
+      console.error("Erro ao salvar:", error);
       toast.error("Erro ao salvar no Firebase.");
     } finally {
       setLoading(false);
@@ -74,7 +83,7 @@ export default function PaginaConfiguracoes({
       }}
     >
       <Head>
-        <title>Ajustar Preços - OrganizaTask</title>
+        <title>Ajustar Preços - OrganizaTask 2026</title>
       </Head>
       <main style={{ maxWidth: "600px", margin: "0 auto" }}>
         <h1 style={{ borderBottom: "1px solid #333", paddingBottom: "15px" }}>
@@ -184,7 +193,7 @@ export default function PaginaConfiguracoes({
               color: "#fff",
               borderRadius: "4px",
               fontWeight: "bold",
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
             }}
           >
             {loading ? "SALVANDO..." : "ATUALIZAR TODOS OS PREÇOS"}
@@ -198,7 +207,7 @@ export default function PaginaConfiguracoes({
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
-  // Trava de segurança para seu e-mail
+
   if (session?.user?.email !== "leogomdesenvolvimento@gmail.com") {
     return { redirect: { destination: "/admin", permanent: false } };
   }
