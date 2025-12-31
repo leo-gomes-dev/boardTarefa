@@ -50,7 +50,7 @@ export default function PaginaConfiguracoes({
     try {
       const userRef = doc(db, "users", userEmail);
 
-      // setDoc com merge: true resolve o erro de salvar caso o documento não exista
+      // setDoc com merge: true cria o doc se não existir, evitando o erro de permissão/inexistência
       await setDoc(
         userRef,
         {
@@ -58,15 +58,17 @@ export default function PaginaConfiguracoes({
           planoAnualDescricao: anualDesc,
           planoVitalicioValor: vitalicioValor,
           planoVitalicioDescricao: vitalicioDesc,
-          lastUpdate: new Date(),
+          updatedAt: new Date(),
         },
         { merge: true }
       );
 
       toast.success("Preços atualizados com sucesso!");
     } catch (error) {
-      console.error("Erro ao salvar:", error);
-      toast.error("Erro ao salvar no Firebase.");
+      console.error("Erro completo:", error);
+      toast.error(
+        "Falha ao salvar. Verifique se você está logado com o email correto."
+      );
     } finally {
       setLoading(false);
     }
