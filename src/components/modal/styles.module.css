@@ -4,13 +4,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(5px); /* Efeito de desfoque no fundo */
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  padding: 20px;
 }
 
 .modalContent {
@@ -18,31 +17,18 @@
   border: 1px solid #3183ff;
   border-radius: 12px;
   padding: 40px;
-  max-width: 500px;
-  width: 100%;
+  max-width: 450px;
+  width: 90%;
   text-align: center;
   color: #fff;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  animation: scaleIn 0.3s ease-out;
-}
-
-.modalContent h2 {
-  font-size: 1.8rem;
-  margin-bottom: 20px;
-  color: #3183ff;
-}
-
-.modalContent p {
-  color: #ccc;
-  line-height: 1.6;
-  font-size: 1.1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .modalActions {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  margin-top: 30px;
+  margin-top: 25px;
 }
 
 .linkBuy {
@@ -52,15 +38,10 @@
   padding: 15px;
   border-radius: 8px;
   font-weight: bold;
-  font-size: 1rem;
-  transition: transform 0.2s, filter 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: filter 0.2s;
 }
 
 .linkBuy:hover {
-  transform: scale(1.02);
   filter: brightness(1.1);
 }
 
@@ -69,34 +50,5 @@
   border: none;
   color: #888;
   cursor: pointer;
-  font-size: 0.9rem;
   text-decoration: underline;
-  transition: color 0.2s;
-}
-
-.buttonClose:hover {
-  color: #fff;
-}
-
-/* Animação para o modal aparecer suavemente */
-@keyframes scaleIn {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Responsividade para celulares pequenos */
-@media (max-width: 480px) {
-  .modalContent {
-    padding: 25px;
-  }
-
-  .modalContent h2 {
-    font-size: 1.5rem;
-  }
 }

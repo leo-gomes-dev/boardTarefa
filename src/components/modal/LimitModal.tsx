@@ -1,5 +1,5 @@
 import Link from "next/link";
-import styles from "./LimitModal.module.css";
+import styles from "./styles.module.css";
 
 interface LimitModalProps {
   onClose: () => void;
@@ -20,11 +20,7 @@ export function LimitModal({ onClose }: LimitModalProps) {
           projetos?
         </p>
         <div className={styles.modalActions}>
-          <Link
-            href="https://pagamento.leogomesdev.com.br"
-            target="_blank"
-            className={styles.linkBuy}
-          >
+          <Link href="/pagamento" target="_blank" className={styles.linkBuy}>
             ☕ ME PAGAR UM CAFÉ (ACESSAR PREMIUM)
           </Link>
           <button onClick={onClose} className={styles.buttonClose}>
