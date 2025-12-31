@@ -1,3 +1,10 @@
+/* Reset básico para garantir consistência em todos os navegadores */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 .container {
   width: 100%;
 }
@@ -8,13 +15,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 200px; /* Garante altura mínima */
 }
 
 .contentForm {
   max-width: 1024px;
   width: 100%;
-  padding: 0 18px;
-  padding-bottom: 28px;
+  padding: 0 18px 28px 18px;
   margin-top: 58px;
 }
 
@@ -23,18 +30,22 @@
   margin-bottom: 8px;
 }
 
+.checkboxArea {
+  margin: 14px 0;
+  display: flex;
+  align-items: center;
+}
+
 .checkboxArea label {
   margin-left: 8px;
   color: #fff;
-}
-
-.checkboxArea {
-  margin: 14px 0;
+  cursor: pointer;
 }
 
 .checkbox {
   width: 18px;
   height: 18px;
+  cursor: pointer;
 }
 
 .button {
@@ -45,6 +56,12 @@
   background-color: #3183ff;
   padding: 12px 0;
   font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #1a66db;
 }
 
 .taskContainer {
@@ -76,6 +93,7 @@
   border: 1.5px solid #909090;
   border-radius: 4px;
   padding: 14px;
+  background-color: #fff; /* Fundo branco para contraste com o texto preto */
 }
 
 .tagContainer {
@@ -93,11 +111,15 @@
   font-size: 12px;
 }
 
-.shareButton {
+.shareButton,
+.trashButton {
   background: transparent;
   border: 0;
   margin: 0 8px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .taskContent {
@@ -109,11 +131,5 @@
 
 .taskContent p {
   white-space: pre-wrap;
-}
-
-.trashButton {
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-  margin: 0 8px;
+  word-break: break-word; /* Evita que textos longos quebrem o layout */
 }

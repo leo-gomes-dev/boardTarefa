@@ -354,13 +354,22 @@ export default function Dashboard({ user }: HomeProps) {
                       size={20}
                     />
                   </button>
-                  <button onClick={() => handleEdit(item)}>
+                  <button
+                    className={styles.trashButton}
+                    onClick={() => handleEdit(item)}
+                  >
                     <FaEdit color="#3183ff" size={20} />
                   </button>
-                  <button onClick={() => handleShare(item.id)}>
+                  <button
+                    className={styles.trashButton}
+                    onClick={() => handleShare(item.id)}
+                  >
                     <FiShare2 color="#3183ff" size={20} />
                   </button>
-                  <button onClick={() => handleDeleteTask(item)}>
+                  <button
+                    className={styles.trashButton}
+                    onClick={() => handleDeleteTask(item)}
+                  >
                     <FaTrash color="#ea3140" size={20} />
                   </button>
                 </div>
