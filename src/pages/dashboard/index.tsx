@@ -286,6 +286,7 @@ export default function Dashboard({ user }: HomeProps) {
                 }
               />
 
+              {/* Área de Prioridade e Checkbox */}
               <div className={styles.priorityArea} style={{ margin: "15px 0" }}>
                 <label
                   style={{ marginRight: 10, fontWeight: "bold", color: "#fff" }}
@@ -295,7 +296,6 @@ export default function Dashboard({ user }: HomeProps) {
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className={styles.selectPriority}
                   style={{ padding: "5px", borderRadius: "4px" }}
                 >
                   <option value="baixa">Baixa</option>
@@ -304,35 +304,54 @@ export default function Dashboard({ user }: HomeProps) {
                 </select>
               </div>
 
-              <div className={styles.checkboxArea} style={{ marginBottom: 15 }}>
+              <div
+                style={{
+                  marginBottom: 15,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
                 <input
                   type="checkbox"
-                  className={styles.checkbox}
                   checked={publicTask}
                   onChange={handleChangePublic}
+                  id="public-check"
                 />
-                <label style={{ color: "#fff", marginLeft: 8 }}>
+                <label
+                  htmlFor="public-check"
+                  style={{ color: "#fff", marginLeft: 8, cursor: "pointer" }}
+                >
                   Deixar tarefa pública?
                 </label>
               </div>
 
-              {/* O botão não fica mais desabilitado, ele agora gerencia o limite via função */}
+              {/* BOTÃO PRINCIPAL */}
               <button
                 className={styles.button}
                 type="submit"
                 style={{
                   backgroundColor:
-                    !editingTaskId && tasks.length >= 50 ? "#555" : "#3183ff",
+                    !editingTaskId && tasks.length >= 50 ? "#444" : "#3183ff",
+                  cursor:
+                    !editingTaskId && tasks.length >= 50
+                      ? "not-allowed"
+                      : "pointer",
                 }}
               >
                 {editingTaskId ? "Salvar Alterações" : "Registrar Tarefa"}
               </button>
 
-              {editingTaskId && (
+              {/* BOTÃO CANCELAR - Forçamos a exibição se houver ID de edição */}
+              {editingTaskId !== null && (
                 <button
                   type="button"
                   className={styles.button}
-                  style={{ backgroundColor: "#888", marginTop: 10 }}
+                  style={{
+                    backgroundColor: "#ea3140",
+                    marginTop: 10,
+                    display: "block",
+                    width: "100%",
+                  }}
                   onClick={() => {
                     setEditingTaskId(null);
                     setInput("");
@@ -344,12 +363,15 @@ export default function Dashboard({ user }: HomeProps) {
                 </button>
               )}
 
+              {/* CONTADOR DE TAREFAS - Fora de qualquer condição para sempre aparecer */}
               <p
                 style={{
                   color: tasks.length >= 50 ? "#ea3140" : "#ccc",
                   fontSize: "14px",
-                  marginTop: "10px",
+                  marginTop: "15px",
+                  textAlign: "center",
                   fontWeight: tasks.length >= 50 ? "bold" : "normal",
+                  display: "block", // Garante que não seja ocultado por algum flex mal configurado
                 }}
               >
                 {tasks.length} / 50 tarefas utilizadas
