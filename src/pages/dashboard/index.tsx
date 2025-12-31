@@ -345,6 +345,7 @@ export default function Dashboard({ user }: HomeProps) {
                 )}
                 <div className={styles.actions}>
                   <button
+                    className={styles.trashButton}
                     onClick={() =>
                       handleToggleComplete(item.id, item.completed!)
                     }
