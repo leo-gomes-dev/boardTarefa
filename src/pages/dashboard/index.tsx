@@ -744,7 +744,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           closeModal={() => setShowUpgradeModal(false)}
         />
       )}
-      // --- JSX do Modal de Agradecimento ---
       {showThanksModal && (
         <div
           style={{

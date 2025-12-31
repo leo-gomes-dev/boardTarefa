@@ -77,10 +77,17 @@ export default async function handler(
         { merge: true }
       );
 
-      // --- TRECHO DE ENVIO DE E-MAIL (NOVO) ---
+      // --- TRECHO DE ENVIO DE E-MAIL ---
       try {
+        // Garante que o link aponte para o site real mesmo se o .env estiver em localhost
+        const baseUrl =
+          process.env.NEXTAUTH_URL &&
+          !process.env.NEXTAUTH_URL.includes("localhost")
+            ? process.env.NEXTAUTH_URL
+            : "http://tarefas.leogomesdev.com";
+
         await resend.emails.send({
-          from: "OrganizaTask <onboarding@resend.dev>",
+          from: "OrganizaTask <suporte.leogomesdev.com>",
           to: [userEmail],
           subject: `🚀 Seu plano ${planoNome} está ativo!`,
           html: `
@@ -91,16 +98,19 @@ export default async function handler(
               <p><strong>Validade até:</strong> ${dataExpiracaoJS.toLocaleDateString()}</p>
               <p>Aproveite todas as novas ferramentas de produtividade agora mesmo.</p>
               <br />
-              <a href="${process.env.NEXTAUTH_URL}/dashboard" 
-                 style="display: inline-block; background: #3183ff; color: #fff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold;">
-                 Acessar meu Painel
-              </a>
+              <div style="text-align: center;">
+                <a href="${baseUrl}/dashboard" 
+                   style="display: inline-block; background: #3183ff; color: #fff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+                   Acessar meu Painel
+                </a>
+              </div>
               <br /><br />
-              <p style="font-size: 12px; color: #888;">Obrigado por apoiar nosso projeto e nos pagar esse café! ☕</p>
+              <p style="font-size: 12px; color: #888; text-align: center;">Obrigado por apoiar nosso projeto e nos pagar esse café! ☕</p>
             </div>
           `,
         });
       } catch (emailErr) {
+        // O erro no e-mail não bloqueia a resposta de sucesso do pagamento no banco
         console.error("Erro ao enviar e-mail de boas-vindas:", emailErr);
       }
       // --- FIM DO TRECHO DE E-MAIL ---
