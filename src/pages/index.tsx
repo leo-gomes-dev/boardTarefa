@@ -43,21 +43,25 @@ export default function Home({ posts, comments, userPlan }: HomeProps) {
         </h1>
 
         <div className={styles.ctaArea}>
-          {/* 
-            LÓGICA PARA PRODUÇÃO:
-            1. Se NÃO logado: Direciona para a SUA página de login personalizada.
-            2. Se logado e Plano Full: Mostra selo de acesso total.
-            3. Se logado e Plano Basic: Botão leva direto para o Dashboard.
-          */}
           {!session ? (
+            // Usuário não logado
             <Link href="/signin">
               <button className={styles.buttonAcessar}>ACESSAR</button>
             </Link>
-          ) : hasFullPlan ? (
+          ) : userPlan === "Enterprise 36 Meses" ? (
+            // Usuário Enterprise
+            <Link href="/dashboard">
+              <button className={styles.buttonAcessar}>
+                IR PARA MEU PAINEL
+              </button>
+            </Link>
+          ) : userPlan === "Professional Max" ? (
+            // Usuário com plano Professional Max
             <div className={styles.activePlanBadge}>
               VOCÊ JÁ POSSUI ACESSO ILIMITADO PROFISSIONAL
             </div>
           ) : (
+            // Usuário Free ou outro plano
             <Link href="/dashboard">
               <button className={styles.buttonAcessar}>
                 IR PARA MEU PAINEL
