@@ -27,6 +27,7 @@ import Link from "next/link";
 // biblioteca de Toast "mensagens"
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { LimitModal } from "@/components/modal/LimitModal";
 
 interface HomeProps {
   user: {
@@ -532,32 +533,9 @@ export default function Dashboard({ user }: HomeProps) {
         </section>
       </main>
 
-      {/* MODAL DE LIMITE - COLOQUE EXATAMENTE AQUI */}
+      {/* MODAL DE LIMITE */}
       {showLimitModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h2>Limite Atingido! 🚀</h2>
-            <p>
-              Você atingiu o limite de 30 tarefas gratuitas em 2026. Desbloqueie
-              a <strong>Versão Premium</strong> para ter escrita ilimitada!
-            </p>
-            <div className={styles.modalActions}>
-              <Link
-                href="https://pagamento.leogomesdev.com.br"
-                target="_blank"
-                className={styles.linkBuy}
-              >
-                QUERO ACESSO ILIMITADO
-              </Link>
-              <button
-                onClick={() => setShowLimitModal(false)}
-                className={styles.buttonClose}
-              >
-                Talvez mais tarde
-              </button>
-            </div>
-          </div>
-        </div>
+        <LimitModal onClose={() => setShowLimitModal(false)} />
       )}
 
       <ToastContainer />

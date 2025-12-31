@@ -5,6 +5,8 @@ import {
   FaRocket,
   FaShieldAlt,
   FaInfinity,
+  FaStar,
+  FaCrown,
 } from "react-icons/fa";
 
 export default function Premium() {
@@ -18,51 +20,84 @@ export default function Premium() {
         <section className={styles.header}>
           <FaRocket size={50} color="#3183ff" />
           <h1>Eleve sua produtividade ao próximo nível</h1>
-          <p>
-            Junte-se a milhares de usuários que não possuem limites para
-            organizar sua rotina.
-          </p>
+          <p>Escolha o plano ideal para sua rotina em 2026.</p>
         </section>
 
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span>PLANO ANUAL</span>
-            <h2>Versão Premium</h2>
-            <div className={styles.price}>
-              <span className={styles.currency}>R$</span>
-              <span className={styles.amount}>9,90</span>
-              <span className={styles.month}>/mês</span>
+        {/* CONTAINER FLEX PARA OS CARDS */}
+        <div className={styles.plansArea}>
+          {/* PLANO RECOMENDADO - R$ 118,80 */}
+          <div className={`${styles.card} ${styles.recommended}`}>
+            <div className={styles.badge}>MAIS VENDIDO</div>
+            <div className={styles.cardHeader}>
+              <FaStar size={30} color="#f1c40f" />
+              <span>PLANO ANUAL</span>
+              <h2>Premium Plus</h2>
+              <div className={styles.price}>
+                <span className={styles.currency}>R$</span>
+                <span className={styles.amount}>9,90</span>
+                <span className={styles.month}>/mês</span>
+              </div>
+              <p className={styles.totalPrice}>R$ 118,80 cobrados anualmente</p>
             </div>
-            <p>Cobrado anualmente (R$ 118,80)</p>
+
+            <ul className={styles.features}>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> <FaInfinity /> Tarefas
+                ilimitadas
+              </li>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> Suporte prioritário 24/7
+              </li>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> Backup em tempo real
+              </li>
+            </ul>
+
+            <a href="pagamento.leogomesdev.com.br" className={styles.buyButton}>
+              ASSINAR AGORA
+            </a>
           </div>
 
-          <ul className={styles.features}>
-            <li>
-              <FaCheckCircle color="#2ecc71" /> <FaInfinity /> Tarefas
-              ilimitadas
-            </li>
-            <li>
-              <FaCheckCircle color="#2ecc71" /> Suporte prioritário 24/7
-            </li>
-            <li>
-              <FaCheckCircle color="#2ecc71" /> Sem anúncios na interface
-            </li>
-            <li>
-              <FaCheckCircle color="#2ecc71" /> Backup em nuvem em tempo real
-            </li>
-          </ul>
+          {/* PLANO VITALÍCIO - R$ 297,00 */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <FaCrown size={30} color="#e74c3c" />
+              <span>PLANO ÚNICO</span>
+              <h2>Enterprise</h2>
+              <div className={styles.price}>
+                <span className={styles.currency}>R$</span>
+                <span className={styles.amount}>297</span>
+                <span className={styles.month}>/único</span>
+              </div>
+              <p className={styles.totalPrice}>
+                Acesso vitalício sem mensalidade
+              </p>
+            </div>
 
-          <a
-            href="checkout.stripe.com" // Substitua pelo link real do Stripe/MercadoPago
-            className={styles.buyButton}
-          >
-            ASSINAR AGORA
-          </a>
+            <ul className={styles.features}>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> Tudo do Plano Anual
+              </li>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> Exportação de dados (CSV)
+              </li>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> Mentoria de produtividade
+              </li>
+            </ul>
 
-          <div className={styles.secure}>
-            <FaShieldAlt size={14} />
-            <span>Pagamento 100% seguro via criptografia</span>
+            <a
+              href="pagamento.leogomesdev.com.br"
+              className={`${styles.buyButton} ${styles.outline}`}
+            >
+              ADQUIRIR VITALÍCIO
+            </a>
           </div>
+        </div>
+
+        <div className={styles.secure}>
+          <FaShieldAlt size={14} />
+          <span>Pagamento 100% seguro via criptografia em 2026</span>
         </div>
 
         <button

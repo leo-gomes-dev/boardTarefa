@@ -5,11 +5,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 40px 20px;
 }
 
 .main {
-  max-width: 600px;
+  /* Aumentado para 1000px para caber os dois cards lado a lado */
+  max-width: 1000px;
   width: 100%;
   text-align: center;
 }
@@ -24,22 +25,60 @@
   margin-bottom: 40px;
 }
 
+/* CONTAINER DOS CARDS */
+.plansArea {
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+  justify-content: center;
+  align-items: stretch; /* Garante que os cards tenham a mesma altura */
+  margin-top: 30px;
+  margin-bottom: 30px;
+}
+
 .card {
   background-color: #17181f;
-  border: 1px solid #3183ff;
+  border: 1px solid #333;
   border-radius: 12px;
   padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  flex: 1;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s;
+}
+
+.recommended {
+  transform: scale(1.05);
+  border: 2px solid #3183ff !important;
+  position: relative;
   box-shadow: 0 10px 30px rgba(49, 131, 255, 0.2);
+}
+
+.badge {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3183ff;
+  color: #fff;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .cardHeader span {
   color: #3183ff;
   font-weight: bold;
   letter-spacing: 2px;
+  font-size: 0.9rem;
 }
 
 .cardHeader h2 {
-  font-size: 2rem;
+  font-size: 1.8rem;
   margin: 10px 0;
 }
 
@@ -48,7 +87,7 @@
 }
 
 .amount {
-  font-size: 3.5rem;
+  font-size: 3rem;
   font-weight: bold;
 }
 
@@ -57,6 +96,7 @@
   padding: 0;
   margin: 30px 0;
   text-align: left;
+  flex-grow: 1; /* Faz a lista ocupar o espaço e empurrar o botão para baixo */
 }
 
 .features li {
@@ -64,7 +104,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 15px;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .buyButton {
@@ -75,8 +115,15 @@
   padding: 18px;
   border-radius: 6px;
   font-weight: bold;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   transition: transform 0.2s, filter 0.2s;
+}
+
+/* Estilo para o botão do plano secundário (vitalício) */
+.outline {
+  background-color: transparent;
+  border: 2px solid #2ecc71;
+  color: #2ecc71;
 }
 
 .buyButton:hover {
@@ -101,4 +148,29 @@
   margin-top: 30px;
   cursor: pointer;
   text-decoration: underline;
+}
+
+/* --- RESPONSIVIDADE (MOBILE) --- */
+@media (max-width: 850px) {
+  .plansArea {
+    flex-direction: column;
+    align-items: center;
+    gap: 50px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 450px;
+    transform: scale(
+      1
+    ) !important; /* Remove o scale para não cortar no mobile */
+  }
+
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .container {
+    padding: 60px 20px;
+  }
 }
