@@ -5,7 +5,7 @@ import Head from "next/head";
 
 import { getSession } from "next-auth/react";
 import { Textarea } from "../../components/textarea";
-import { FiShare2, FiSettings } from "react-icons/fi"; // Importado FiSettings
+import { FiShare2, FiSettings, FiUser } from "react-icons/fi";
 import { FaTrash } from "react-icons/fa";
 
 import { db } from "../../services/firebaseConnection";
@@ -34,6 +34,7 @@ import Swal from "sweetalert2";
 interface HomeProps {
   user: {
     email: string;
+    name?: string;
   };
 }
 
@@ -42,7 +43,7 @@ interface TaskProps {
   created: Date;
   public: boolean;
   tarefa: string;
-  user: string;
+  user: string; // Email do autor
 }
 
 export default function Admin({ user }: HomeProps) {
@@ -51,13 +52,13 @@ export default function Admin({ user }: HomeProps) {
   const [tasks, setTasks] = useState<TaskProps[]>([]);
   const [isPremium, setIsPremium] = useState(false);
 
-  // COLOQUE SEU EMAIL DE ADMIN AQUI
+  // EMAIL DO ADMINISTRADOR
   const ADMIN_EMAIL = "leogomdesenvolvimento@gmail.com";
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     async function loadTarefas() {
-      // 1. Verifica status do plano no Firebase
+      // 1. Verifica status do plano
       const userRef = doc(db, "users", user.email);
       const userSnap = await getDoc(userRef);
 
@@ -65,13 +66,21 @@ export default function Admin({ user }: HomeProps) {
         setIsPremium(true);
       }
 
-      // 2. Carrega tarefas em tempo real filtradas pelo usuário logado
+      // 2. Lógica de busca: Se for Admin, traz TUDO. Se não, traz só as dele.
       const tarefasRef = collection(db, "tarefas");
-      const q = query(
-        tarefasRef,
-        orderBy("created", "desc"),
-        where("user", "==", user.email)
-      );
+      let q;
+
+      if (isAdmin) {
+        // Busca global para o Admin controlar o sistema
+        q = query(tarefasRef, orderBy("created", "desc"));
+      } else {
+        // Busca restrita ao usuário comum
+        q = query(
+          tarefasRef,
+          orderBy("created", "desc"),
+          where("user", "==", user.email)
+        );
+      }
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
         let lista: TaskProps[] = [];
@@ -81,7 +90,7 @@ export default function Admin({ user }: HomeProps) {
             id: doc.id,
             tarefa: doc.data().tarefa,
             created: doc.data().created.toDate(),
-            user: doc.data().user,
+            user: doc.data().user, // Email de quem cadastrou
             public: doc.data().public,
           });
         });
@@ -93,44 +102,7 @@ export default function Admin({ user }: HomeProps) {
     }
 
     loadTarefas();
-  }, [user.email]);
-
-  function handleChangePublic(event: ChangeEvent<HTMLInputElement>) {
-    setPublicTask(event.target.checked);
-  }
-
-  async function handleRegisterTask(event: FormEvent) {
-    event.preventDefault();
-
-    if (input === "") {
-      toast.warn("Digite alguma tarefa!");
-      return;
-    }
-
-    // Bloqueio para usuários Free (limite de 30)
-    if (!isPremium && tasks.length >= 30) {
-      toast.error(
-        "Limite de 30 tarefas atingido! Faça upgrade para o Plano Premium para ter tarefas ilimitadas."
-      );
-      return;
-    }
-
-    try {
-      await addDoc(collection(db, "tarefas"), {
-        tarefa: input,
-        created: new Date(),
-        user: user?.email,
-        public: publicTask,
-      });
-
-      setInput("");
-      setPublicTask(false);
-      toast.success("Tarefa registrada com sucesso!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao registrar tarefa.");
-    }
-  }
+  }, [user.email, isAdmin]);
 
   async function handleShare(id: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/task/${id}`);
@@ -140,7 +112,7 @@ export default function Admin({ user }: HomeProps) {
   const handleDeleteTask = async (id: string) => {
     const result = await Swal.fire({
       title: "Deletar tarefa?",
-      text: "Esta ação não pode ser revertida!",
+      text: "Esta ação removerá a tarefa do banco de dados definitivamente!",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ea3140",
@@ -154,7 +126,7 @@ export default function Admin({ user }: HomeProps) {
     if (result.isConfirmed) {
       try {
         await deleteDoc(doc(db, "tarefas", id));
-        toast.success("Tarefa removida!");
+        toast.success("Tarefa removida com sucesso!");
       } catch (err) {
         toast.error("Erro ao deletar tarefa.");
       }
@@ -164,104 +136,87 @@ export default function Admin({ user }: HomeProps) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Painel de Controle - OrganizaTask 2026</title>
+        <title>Painel de Controle - Admin 2026</title>
       </Head>
 
       <main className={styles.main}>
-        {/* <section className={styles.content}>
-          <div className={styles.contentForm}>
-            
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "20px",
-              }}
-            >
-              <h1 className={styles.title}>
-                Bem-vindo, {isPremium ? "Assinante Premium 👑" : "Usuário Free"}
-              </h1>
-
-              {isAdmin && (
-                <Link
-                  href="/config"
-                  style={{
-                    backgroundColor: "#3183ff",
-                    padding: "8px 12px",
-                    borderRadius: "4px",
-                    color: "#FFF",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    textDecoration: "none",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                  }}
-                >
-                  <FiSettings size={20} />
-                  Configurações
-                </Link>
-              )}
-            </div>
-
-            <form onSubmit={handleRegisterTask}>
-              <Textarea
-                placeholder="O que temos para hoje?"
-                value={input}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                  setInput(event.target.value)
-                }
-              />
-              <div className={styles.checkboxArea}>
-                <input
-                  type="checkbox"
-                  id="public_check"
-                  className={styles.checkbox}
-                  checked={publicTask}
-                  onChange={handleChangePublic}
-                />
-                <label htmlFor="public_check">
-                  Tornar esta tarefa pública?
-                </label>
-              </div>
-
-              <button
-                className={styles.button}
-                type="submit"
-                disabled={!isPremium && tasks.length >= 30}
-              >
-                {!isPremium && tasks.length >= 30
-                  ? "Limite Atingido (30/30)"
-                  : "Registrar Tarefa"}
-              </button>
-            </form>
-          </div>
-        </section> */}
-
         <section className={styles.taskContainer}>
-          <h1>Minhas Tarefas ({tasks.length})</h1>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "30px",
+            }}
+          >
+            <h1 style={{ color: isAdmin ? "#3183ff" : "#FFF" }}>
+              {isAdmin
+                ? `Gestão Global (${tasks.length})`
+                : `Minhas Tarefas (${tasks.length})`}
+            </h1>
+
+            {isAdmin && (
+              <Link
+                href="/config"
+                style={{
+                  backgroundColor: "#3183ff",
+                  padding: "8px 15px",
+                  borderRadius: "4px",
+                  color: "#FFF",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  textDecoration: "none",
+                  fontWeight: "bold",
+                }}
+              >
+                <FiSettings size={20} /> Preços
+              </Link>
+            )}
+          </div>
 
           {tasks.length === 0 ? (
-            <p className={styles.emptyText}>Nenhuma tarefa encontrada.</p>
+            <p className={styles.emptyText}>
+              Nenhuma tarefa encontrada no sistema.
+            </p>
           ) : (
             tasks.map((item) => (
-              <article key={item.id} className={styles.task}>
+              <article
+                key={item.id}
+                className={styles.task}
+                style={{ borderLeft: isAdmin ? "5px solid #3183ff" : "none" }}
+              >
                 <div className={styles.tagContainer}>
                   {item.public && <label className={styles.tag}>PÚBLICA</label>}
+
+                  {/* Exibe o Email do usuário que cadastrou (Apenas se você for Admin) */}
+                  {isAdmin && (
+                    <span
+                      style={{
+                        backgroundColor: "#333",
+                        color: "#3183ff",
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
+                    >
+                      <FiUser size={14} /> {item.user}
+                    </span>
+                  )}
 
                   <div className={styles.taskActions}>
                     <button
                       className={styles.shareButton}
                       onClick={() => handleShare(item.id)}
-                      title="Compartilhar"
                     >
                       <FiShare2 size={20} color="#3183ff" />
                     </button>
                     <button
                       className={styles.trashButton}
                       onClick={() => handleDeleteTask(item.id)}
-                      title="Excluir"
                     >
                       <FaTrash size={20} color="#ea3140" />
                     </button>
@@ -299,18 +254,14 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
 
   if (!session?.user) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
+    return { redirect: { destination: "/", permanent: false } };
   }
 
   return {
     props: {
       user: {
         email: session?.user?.email,
+        name: session?.user?.name,
       },
     },
   };
