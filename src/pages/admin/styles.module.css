@@ -1,7 +1,10 @@
-/* Reset básico para garantir consistência em todos os navegadores */
-
 .container {
   width: 100%;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
 }
 
 .content {
@@ -10,23 +13,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px; /* Garante altura mínima */
+  min-height: 250px;
+  padding: 40px 0;
 }
 
 .contentForm {
   max-width: 1024px;
   width: 100%;
-  padding: 0 18px 28px 18px;
-  margin-top: 58px;
+  padding: 0 18px;
+  box-sizing: border-box;
 }
 
 .title {
   color: #fff;
-  margin-bottom: 8px;
+  margin-bottom: 18px;
+  font-size: 28px;
 }
 
 .checkboxArea {
-  margin: 14px 0;
+  margin: 18px 0;
   display: flex;
   align-items: center;
 }
@@ -35,6 +40,7 @@
   margin-left: 8px;
   color: #fff;
   cursor: pointer;
+  font-size: 16px;
 }
 
 .checkbox {
@@ -49,82 +55,116 @@
   border-radius: 4px;
   color: #fff;
   background-color: #3183ff;
-  padding: 12px 0;
+  padding: 14px 0;
   font-size: 18px;
+  font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
-.button:hover {
+.button:hover:not(:disabled) {
   background-color: #1a66db;
 }
 
+/* Estilo para o botão quando o limite de tarefas é atingido */
+.button:disabled {
+  background-color: #4b4b4b;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .taskContainer {
-  margin: 34px auto 0 auto;
+  margin: 40px auto;
   padding: 0 18px;
   width: 100%;
   max-width: 1024px;
   display: flex;
   flex-direction: column;
-}
-
-.taskContainer a {
-  text-decoration: none;
-  color: #0f0f0f;
+  box-sizing: border-box;
 }
 
 .taskContainer h1 {
   text-align: center;
   font-size: 32px;
-  margin-bottom: 14px;
+  margin-bottom: 24px;
+  color: #0f0f0f;
 }
 
 .task {
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   line-height: 150%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  border: 1.5px solid #909090;
-  border-radius: 4px;
-  padding: 14px;
-  background-color: #fff; /* Fundo branco para contraste com o texto preto */
+  border: 1.5px solid #e2e2e2;
+  border-radius: 8px;
+  padding: 18px;
+  background-color: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .tagContainer {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  width: 100%;
 }
 
 .tag {
   background-color: #3183ff;
-  padding: 2px 6px;
+  padding: 4px 10px;
   color: #fff;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.taskActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .shareButton,
 .trashButton {
   background: transparent;
   border: 0;
-  margin: 0 8px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 4px;
+  transition: transform 0.2s;
+}
+
+.shareButton:hover,
+.trashButton:hover {
+  transform: scale(1.1);
 }
 
 .taskContent {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   width: 100%;
+  margin-bottom: 12px;
+}
+
+.taskContent a {
+  text-decoration: none;
+  color: #3183ff;
+  font-weight: 500;
 }
 
 .taskContent p {
   white-space: pre-wrap;
-  word-break: break-word; /* Evita que textos longos quebrem o layout */
+  word-break: break-word;
+  color: #333;
+  font-size: 16px;
+}
+
+.taskFooter {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.createdAt {
+  color: #717171;
+  font-size: 13px;
 }

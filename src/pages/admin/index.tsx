@@ -18,6 +18,8 @@ import {
   onSnapshot,
   doc,
   deleteDoc,
+  getDoc,
+  where,
 } from "firebase/firestore";
 import Link from "next/link";
 
@@ -47,11 +49,25 @@ export default function Admin({ user }: HomeProps) {
   const [input, setInput] = useState("");
   const [publicTask, setPublicTask] = useState(false);
   const [tasks, setTasks] = useState<TaskProps[]>([]);
+  const [isPremium, setIsPremium] = useState(false); // Estado para o Plano
 
   useEffect(() => {
     async function loadTarefas() {
+      // 1. Verifica se o usuário é Premium no Firebase
+      const userRef = doc(db, "users", user.email);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists() && userSnap.data().status === "premium") {
+        setIsPremium(true);
+      }
+
+      // 2. Carrega as tarefas do usuário logado
       const tarefasRef = collection(db, "tarefas");
-      const q = query(tarefasRef, orderBy("created", "desc"));
+      const q = query(
+        tarefasRef,
+        orderBy("created", "desc"),
+        where("user", "==", user.email) // Filtra para mostrar apenas as do usuário
+      );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
         let lista: TaskProps[] = [];
@@ -73,7 +89,7 @@ export default function Admin({ user }: HomeProps) {
     }
 
     loadTarefas();
-  }, []);
+  }, [user.email]);
 
   function handleChangePublic(event: ChangeEvent<HTMLInputElement>) {
     setPublicTask(event.target.checked);
@@ -84,6 +100,15 @@ export default function Admin({ user }: HomeProps) {
 
     if (input === "") {
       toast.warn("Digite alguma tarefa!");
+      return;
+    }
+
+    // LÓGICA DE BLOQUEIO 2026:
+    // Se NÃO for premium e já tiver 30 ou mais tarefas, bloqueia.
+    if (!isPremium && tasks.length >= 30) {
+      toast.error(
+        "Limite de 30 tarefas atingido! Faça upgrade para o Plano Premium."
+      );
       return;
     }
 
@@ -105,13 +130,10 @@ export default function Admin({ user }: HomeProps) {
   }
 
   async function handleShare(id: string) {
-    await navigator.clipboard.writeText(
-      `${process.env.NEXT_PUBLIC_URL}/task/${id}`
-    );
+    await navigator.clipboard.writeText(`${window.location.origin}/task/${id}`);
     toast.info("URL copiada com sucesso!");
   }
 
-  // Função de confirmação com SweetAlert2
   const handleDeleteTask = async (id: string) => {
     const result = await Swal.fire({
       title: "Tem certeza?",
@@ -122,6 +144,8 @@ export default function Admin({ user }: HomeProps) {
       cancelButtonColor: "#3183ff",
       confirmButtonText: "Sim, deletar!",
       cancelButtonText: "Cancelar",
+      background: "#121212",
+      color: "#fff",
     });
 
     if (result.isConfirmed) {
@@ -145,7 +169,9 @@ export default function Admin({ user }: HomeProps) {
       <main className={styles.main}>
         <section className={styles.content}>
           <div className={styles.contentForm}>
-            <h1 className={styles.title}>Qual sua tarefa?</h1>
+            <h1 className={styles.title}>
+              Qual sua tarefa, {isPremium ? "Premium 👑" : "Free"}?
+            </h1>
 
             <form onSubmit={handleRegisterTask}>
               <Textarea
@@ -158,39 +184,53 @@ export default function Admin({ user }: HomeProps) {
               <div className={styles.checkboxArea}>
                 <input
                   type="checkbox"
+                  id="public_check"
                   className={styles.checkbox}
                   checked={publicTask}
                   onChange={handleChangePublic}
                 />
-                <label>Deixar tarefa pública?</label>
+                <label htmlFor="public_check">Deixar tarefa pública?</label>
               </div>
 
-              <button className={styles.button} type="submit">
-                Registrar
+              <button
+                className={styles.button}
+                type="submit"
+                disabled={!isPremium && tasks.length >= 30}
+              >
+                {!isPremium && tasks.length >= 30
+                  ? "Limite Atingido"
+                  : "Registrar"}
               </button>
             </form>
           </div>
         </section>
 
         <section className={styles.taskContainer}>
-          <h1>Minhas tarefas</h1>
+          <h1>Minhas tarefas ({tasks.length})</h1>
 
           {tasks.length === 0 ? (
             <p>Você ainda não tem tarefas registradas.</p>
           ) : (
             tasks.map((item) => (
               <article key={item.id} className={styles.task}>
-                {item.public && (
-                  <div className={styles.tagContainer}>
-                    <label className={styles.tag}>PÚBLICO</label>
+                <div className={styles.tagContainer}>
+                  {item.public && <label className={styles.tag}>PÚBLICO</label>}
+
+                  <div className={styles.taskActions}>
                     <button
                       className={styles.shareButton}
                       onClick={() => handleShare(item.id)}
                     >
                       <FiShare2 size={22} color="#3183ff" />
                     </button>
+                    <button
+                      className={styles.trashButton}
+                      onClick={() => handleDeleteTask(item.id)}
+                    >
+                      <FaTrash size={22} color="#ea3140" />
+                    </button>
                   </div>
-                )}
+                </div>
 
                 <div className={styles.taskContent}>
                   {item.public ? (
@@ -200,18 +240,11 @@ export default function Admin({ user }: HomeProps) {
                   ) : (
                     <p>{item.tarefa}</p>
                   )}
-
-                  <button
-                    className={styles.trashButton}
-                    onClick={() => handleDeleteTask(item.id)}
-                  >
-                    <FaTrash size={24} color="#ea3140" />
-                  </button>
                 </div>
 
                 <div className={styles.taskFooter}>
                   <span className={styles.createdAt}>
-                    Criado por: <strong>{item.user}</strong> em{" "}
+                    Em:{" "}
                     {format(item.created, "dd/MM/yyyy 'às' HH:mm", {
                       locale: ptBR,
                     })}
@@ -229,12 +262,7 @@ export default function Admin({ user }: HomeProps) {
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
 
-  if (
-    !session?.user ||
-    (session.user.email !== "leogomdesenvolvimento@gmail.com" &&
-      session.user.email !== "azulcargov@gmail.com" &&
-      session.user.email !== "leogomecommerce@gmail.com")
-  ) {
+  if (!session?.user) {
     return {
       redirect: {
         destination: "/",

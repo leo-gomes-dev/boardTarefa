@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Head from "next/head";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import styles from "./styles.module.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -18,13 +18,15 @@ export default function Premium() {
   const [loading, setLoading] = useState(false);
 
   async function handleCheckout(plano: string, valor: string) {
-    // Validação de login com Toast profissional
-    if (!session?.user?.email) {
-      toast.warn("Por favor, faça login para continuar!", {
+    // Se não estiver logado, avisa e convida para o login
+    if (!session) {
+      toast.info("Quase lá! Faça login para concluir sua assinatura.", {
         position: "top-center",
-        autoClose: 4000,
+        autoClose: 3000,
         theme: "dark",
       });
+      // Opcional: Redirecionar para login após 2 segundos
+      // setTimeout(() => signIn("google"), 2000);
       return;
     }
 
@@ -37,21 +39,21 @@ export default function Premium() {
         body: JSON.stringify({
           plano: plano,
           valor: valor,
-          email: session.user.email,
+          email: session.user?.email,
         }),
       });
 
       const data = await response.json();
 
       if (data.url) {
-        // Redireciona para o Checkout Pro (Mercado Pago)
+        // Redireciona para o Mercado Pago (Aceita Cartão Real ou Pix em Produção)
         window.location.href = data.url;
       } else {
-        throw new Error(data.error || "Falha ao gerar link de pagamento");
+        throw new Error(data.error || "Erro ao gerar link de pagamento");
       }
     } catch (err: any) {
       console.error(err);
-      toast.error("Erro ao processar pagamento. Tente novamente.", {
+      toast.error("Erro ao iniciar checkout. Verifique sua conexão.", {
         position: "bottom-right",
         theme: "dark",
       });
@@ -107,7 +109,7 @@ export default function Premium() {
               disabled={loading}
               className={styles.buyButton}
             >
-              {loading ? "PROCESSANDO..." : "ASSINAR AGORA"}
+              {loading ? "CARREGANDO..." : "ASSINAR AGORA"}
             </button>
           </div>
 
@@ -144,18 +146,17 @@ export default function Premium() {
               disabled={loading}
               className={`${styles.buyButton} ${styles.outline}`}
             >
-              {loading ? "PROCESSANDO..." : "ADQUIRIR VITALÍCIO"}
+              {loading ? "CARREGANDO..." : "ADQUIRIR VITALÍCIO"}
             </button>
           </div>
         </div>
 
         <div className={styles.secure}>
           <FaShieldAlt size={14} />
-          <span>Pagamento 100% seguro via criptografia em 2026</span>
+          <span>Pagamento processado com segurança pelo Mercado Pago</span>
         </div>
       </main>
 
-      {/* Componente necessário para exibir os avisos na tela */}
       <ToastContainer position="bottom-right" autoClose={5000} />
     </div>
   );
