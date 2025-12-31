@@ -325,7 +325,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   marginTop: "15px",
                 }}
               >
-                {(isPremium || isAdmin) && (
+                {(isEnterprise || isAdmin) && (
                   <div
                     style={{
                       display: "flex",
@@ -356,6 +356,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                     </label>
                   </div>
                 )}
+
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
@@ -499,7 +500,14 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   alignItems: "center",
                 }}
               >
-                <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
                   <p
                     style={{
                       textDecoration: item.completed ? "line-through" : "none",
@@ -510,8 +518,50 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   >
                     {item.tarefa}
                   </p>
+
+                  {/* Badge PÚBLICA */}
+                  {item.public && isEnterprise && (
+                    <span
+                      style={{
+                        backgroundColor: "#27ae60",
+                        color: "#FFF",
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      PÚBLICA
+                    </span>
+                  )}
+
+                  {/* Checkbox Deixar Pública (só Enterprise) */}
+                  {isEnterprise && (
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        marginLeft: "10px",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.public}
+                        onChange={(e) =>
+                          updateDoc(doc(db, "tarefas", item.id), {
+                            public: e.target.checked,
+                          })
+                        }
+                      />
+                      <span style={{ fontSize: "11px" }}>Pública</span>
+                    </label>
+                  )}
                 </div>
-                <div style={{ display: "flex", gap: "12px" }}>
+
+                <div
+                  style={{ display: "flex", gap: "12px", alignItems: "center" }}
+                >
                   <button
                     onClick={() =>
                       updateDoc(doc(db, "tarefas", item.id), {
@@ -529,6 +579,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                       color={item.completed ? "#27ae60" : "#5c5c5c"}
                     />
                   </button>
+
                   <button
                     onClick={() =>
                       handleActionGuard(
@@ -552,14 +603,21 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   >
                     <FaEdit size={20} color="#3183ff" />
                   </button>
+
                   <button
                     onClick={() =>
                       handleActionGuard(
                         () => {
+                          if (!item.public) {
+                            toast.warn(
+                              "Esta tarefa não é pública. Apenas tarefas Enterprise podem ser públicas!"
+                            );
+                            return;
+                          }
                           navigator.clipboard.writeText(
                             window.location.origin + "/task/" + item.id
                           );
-                          toast.info("Link copiado!");
+                          toast.success("Link copiado!");
                         },
                         "Compartilhamento",
                         "premium"
@@ -568,12 +626,18 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                     style={{
                       background: "none",
                       border: "none",
-                      cursor: "pointer",
-                      opacity: isPremium || isAdmin ? 1 : 0.3,
+                      cursor: isEnterprise ? "pointer" : "not-allowed",
+                      opacity: isEnterprise ? 1 : 0.4,
                     }}
                   >
-                    <FiShare2 size={20} color="#3183ff" />
+                    <FiShare2
+                      size={20}
+                      color={
+                        item.public && isEnterprise ? "#27ae60" : "#3183ff"
+                      }
+                    />
                   </button>
+
                   <button
                     onClick={() => handleDeleteTask(item)}
                     style={{
