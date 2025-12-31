@@ -9,7 +9,6 @@
 }
 
 .main {
-  /* Aumentado para 1000px para caber os dois cards lado a lado */
   max-width: 1000px;
   width: 100%;
   text-align: center;
@@ -25,13 +24,12 @@
   margin-bottom: 40px;
 }
 
-/* CONTAINER DOS CARDS */
 .plansArea {
   display: flex;
   flex-direction: row;
   gap: 30px;
   justify-content: center;
-  align-items: stretch; /* Garante que os cards tenham a mesma altura */
+  align-items: stretch;
   margin-top: 30px;
   margin-bottom: 30px;
 }
@@ -96,7 +94,7 @@
   padding: 0;
   margin: 30px 0;
   text-align: left;
-  flex-grow: 1; /* Faz a lista ocupar o espaço e empurrar o botão para baixo */
+  flex-grow: 1;
 }
 
 .features li {
@@ -119,7 +117,6 @@
   transition: transform 0.2s, filter 0.2s;
 }
 
-/* Estilo para o botão do plano secundário (vitalício) */
 .outline {
   background-color: transparent;
   border: 2px solid #2ecc71;
@@ -150,7 +147,6 @@
   text-decoration: underline;
 }
 
-/* --- RESPONSIVIDADE (MOBILE) --- */
 @media (max-width: 850px) {
   .plansArea {
     flex-direction: column;
@@ -161,9 +157,7 @@
   .card {
     width: 100%;
     max-width: 450px;
-    transform: scale(
-      1
-    ) !important; /* Remove o scale para não cortar no mobile */
+    transform: scale(1) !important;
   }
 
   .header h1 {

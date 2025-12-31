@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Head from "next/head";
+import Link from "next/link"; // Import necessário para o Link
 import { useSession, signIn, getSession } from "next-auth/react";
 import { GetServerSideProps } from "next";
 import styles from "./styles.module.css";
@@ -156,7 +157,7 @@ export default function Premium({
                   <FaCheckCircle color="#2ecc71" /> Exportar para PDF
                 </li>
                 <li>
-                  <FaCheckCircle color="#2ecc71" /> Suporte VIP WhatsApp
+                  <FaCheckCircle color="#2ecc71" /> Deixar tarefa pública
                 </li>
               </ul>
               <button
@@ -170,6 +171,11 @@ export default function Premium({
             </div>
           )}
         </div>
+
+        {/* BOTÃO VOLTAR - Texto clicável conforme seu CSS original */}
+        <Link href="/dashboard" className={styles.backButton}>
+          Voltar ao painel
+        </Link>
       </main>
 
       <ToastContainer theme="dark" />
