@@ -93,21 +93,15 @@ export default function Dashboard({ user }: HomeProps) {
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
 
-    // Feedback visual se o campo estiver vazio
+    // 1. Feedback de campo vazio
     if (input.trim() === "") {
-      toast.warn("Por favor, digite uma tarefa antes de registrar!", {
-        position: "top-center",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      return; // Interrompe a execução para não salvar no banco
+      toast.warn("Por favor, digite uma tarefa antes de registrar!");
+      return;
     }
 
     try {
       if (editingTaskId) {
+        // Lógica de Edição (Não tem limite)
         const docRef = doc(db, "tarefas", editingTaskId);
         await updateDoc(docRef, {
           tarefa: input,
@@ -117,10 +111,10 @@ export default function Dashboard({ user }: HomeProps) {
         setEditingTaskId(null);
         toast.success("Tarefa atualizada!");
       } else {
-        // VERIFICAÇÃO DE LIMITE
+        // 2. Verificação de Limite para NOVAS tarefas
         if (tasks.length >= 50) {
-          setShowLimitModal(true);
-          return;
+          setShowLimitModal(true); // Abre o modal sinalizando o limite
+          return; // Interrompe o registro
         }
 
         await addDoc(collection(db, "tarefas"), {
@@ -133,12 +127,14 @@ export default function Dashboard({ user }: HomeProps) {
         });
         toast.success("Tarefa registrada!");
       }
+
+      // Limpa os campos após sucesso
       setInput("");
       setPriority("baixa");
       setPublicTask(false);
     } catch (err) {
       console.log(err);
-      toast.error("Erro ao processar sua tarefa.");
+      toast.error("Erro ao salvar tarefa.");
     }
   }
 
@@ -230,7 +226,7 @@ export default function Dashboard({ user }: HomeProps) {
               autoClose: 2000,
             });
           } else {
-            // Se o tempo acabou e NÃO foi clicado em desfazer, deleta permanentemente
+            // Se o tempo acabou e NÃO foi clicado em desfazer, deletar permanente
             try {
               const docRef = doc(db, "tarefas", task.id);
               await deleteDoc(docRef);
@@ -320,19 +316,18 @@ export default function Dashboard({ user }: HomeProps) {
                 </label>
               </div>
 
-              {/* ÚNICO BOTÃO DE AÇÃO PRINCIPAL */}
+              {/* O botão não fica mais desabilitado, ele agora gerencia o limite via função */}
               <button
                 className={styles.button}
                 type="submit"
-                disabled={!editingTaskId && tasks.length >= 5}
                 style={{
-                  opacity: !editingTaskId && tasks.length >= 5 ? 0.5 : 1,
+                  backgroundColor:
+                    !editingTaskId && tasks.length >= 50 ? "#555" : "#3183ff",
                 }}
               >
                 {editingTaskId ? "Salvar Alterações" : "Registrar Tarefa"}
               </button>
 
-              {/* BOTÃO DE CANCELAR (SÓ APARECE NA EDIÇÃO) */}
               {editingTaskId && (
                 <button
                   type="button"
@@ -348,6 +343,17 @@ export default function Dashboard({ user }: HomeProps) {
                   Cancelar Edição
                 </button>
               )}
+
+              <p
+                style={{
+                  color: tasks.length >= 50 ? "#ea3140" : "#ccc",
+                  fontSize: "14px",
+                  marginTop: "10px",
+                  fontWeight: tasks.length >= 50 ? "bold" : "normal",
+                }}
+              >
+                {tasks.length} / 50 tarefas utilizadas
+              </p>
             </form>
           </div>
         </section>
@@ -485,24 +491,38 @@ export default function Dashboard({ user }: HomeProps) {
       {showLimitModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2>Limite Atingido!</h2>
-            <p>
-              Você atingiu o limite de 5 tarefas gratuitas. Para continuar,
-              adquira o plano ilimitado.
+            <h2 style={{ color: "#FFF" }}>Atenção! 🚀</h2>
+            <p style={{ color: "#ccc", margin: "20px 0" }}>
+              Você atingiu o limite máximo de 50 tarefas da sua conta gratuita.
+              Mude para a <strong>Versão Premium</strong> e tenha escrita
+              ilimitada para organizar toda sua rotina!
             </p>
-            <div className={styles.modalActions}>
+
+            <div
+              className={styles.modalActions}
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            >
               <Link
-                href="https://seulink.com"
+                href="https://seulinkdepagamento.com.br"
                 target="_blank"
                 className={styles.linkBuy}
+                style={{
+                  backgroundColor: "#2ecc71", // Cor verde para destacar "Compra"
+                  padding: "15px",
+                  borderRadius: "4px",
+                  color: "#fff",
+                  textDecoration: "none",
+                  fontWeight: "bold",
+                }}
               >
-                Liberar Acesso Ilimitado
+                QUERO ACESSO ILIMITADO AGORA
               </Link>
+
               <button
                 onClick={() => setShowLimitModal(false)}
                 className={styles.buttonClose}
               >
-                Talvez mais tarde
+                Continuar com 50 tarefas
               </button>
             </div>
           </div>
