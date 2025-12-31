@@ -5,7 +5,7 @@ import Head from "next/head";
 
 import { getSession } from "next-auth/react";
 import { Textarea } from "../../components/textarea";
-import { FiShare2, FiSettings } from "react-icons/fi";
+import { FiShare2, FiSettings, FiPlusCircle } from "react-icons/fi";
 import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa";
 import { useRouter } from "next/router";
 
@@ -22,6 +22,11 @@ import {
   deleteDoc,
   updateDoc,
   getDoc,
+  limit,
+  startAfter,
+  getDocs,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from "firebase/firestore";
 import Link from "next/link";
 
@@ -29,9 +34,7 @@ import { toast } from "react-toastify";
 import { LimitModal } from "@/components/modal/LimitModal";
 
 interface HomeProps {
-  user: {
-    email: string;
-  };
+  user: { email: string };
 }
 
 interface TaskProps {
@@ -53,8 +56,13 @@ export default function Dashboard({ user }: HomeProps) {
   const [filter, setFilter] = useState("all");
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [totalCount, setTotalCount] = useState(0); // Estado para o contador total
 
-  const router = useRouter();
+  const [lastVisible, setLastVisible] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   const isAdmin = user?.email === "leogomdesenvolvimento@gmail.com";
 
   useEffect(() => {
@@ -72,14 +80,24 @@ export default function Dashboard({ user }: HomeProps) {
   useEffect(() => {
     if (!user?.email) return;
 
-    const tarefasRef = collection(db, "tarefas");
-    const q = query(
-      tarefasRef,
-      orderBy("created", "desc"),
+    // Snapshot para o contador total em tempo real
+    const qCount = query(
+      collection(db, "tarefas"),
       where("user", "==", user.email)
     );
+    const unsubCount = onSnapshot(qCount, (snapshot) => {
+      setTotalCount(snapshot.size);
+    });
 
-    const unsub = onSnapshot(q, (snapshot) => {
+    // Query principal com ordenação (Novas no Topo) e limite inicial
+    const q = query(
+      collection(db, "tarefas"),
+      where("user", "==", user.email),
+      orderBy("created", "desc"),
+      limit(15)
+    );
+
+    const unsubTasks = onSnapshot(q, (snapshot) => {
       let lista = [] as TaskProps[];
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -93,12 +111,57 @@ export default function Dashboard({ user }: HomeProps) {
           priority: data.priority || "baixa",
         });
       });
+
       setTasks(lista);
-      if (!isPremium && lista.length >= 30) setShowLimitModal(true);
+      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length >= 15);
+
+      if (!isPremium && snapshot.size >= 30) setShowLimitModal(true);
     });
 
-    return () => unsub();
+    return () => {
+      unsubCount();
+      unsubTasks();
+    };
   }, [user?.email, isPremium]);
+
+  async function handleLoadMore() {
+    if (!lastVisible || loadingMore) return;
+    setLoadingMore(true);
+
+    const q = query(
+      collection(db, "tarefas"),
+      where("user", "==", user.email),
+      orderBy("created", "desc"),
+      startAfter(lastVisible),
+      limit(15)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const lista = [] as TaskProps[];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      lista.push({
+        id: doc.id,
+        tarefa: data.tarefa,
+        created: data.created?.toDate ? data.created.toDate() : new Date(),
+        user: data.user,
+        public: data.public,
+        completed: data.completed || false,
+        priority: data.priority || "baixa",
+      });
+    });
+
+    if (lista.length > 0) {
+      setTasks((prevTasks) => [...prevTasks, ...lista]);
+      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+      setHasMore(querySnapshot.docs.length >= 15);
+    } else {
+      setHasMore(false);
+    }
+    setLoadingMore(false);
+  }
 
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
@@ -106,11 +169,9 @@ export default function Dashboard({ user }: HomeProps) {
       toast.warn("Preencha a tarefa!");
       return;
     }
-
     try {
       if (editingTaskId) {
-        const docRef = doc(db, "tarefas", editingTaskId);
-        await updateDoc(docRef, {
+        await updateDoc(doc(db, "tarefas", editingTaskId), {
           tarefa: input,
           public: publicTask,
           priority: priority,
@@ -137,23 +198,11 @@ export default function Dashboard({ user }: HomeProps) {
     }
   }
 
-  function handleEdit(item: TaskProps) {
-    setInput(item.tarefa);
-    setPriority(item.priority);
-    setPublicTask(item.public);
-    setEditingTaskId(item.id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  async function handleToggleComplete(id: string, completed: boolean) {
-    const docRef = doc(db, "tarefas", id);
-    await updateDoc(docRef, { completed: !completed });
-  }
-
-  async function handleShare(id: string) {
-    await navigator.clipboard.writeText(`${window.location.origin}/task/${id}`);
-    toast.info("URL Copiada!");
-  }
+  const filteredTasks = tasks.filter((item) => {
+    if (filter === "completed") return item.completed === true;
+    if (filter === "pending") return item.completed === false;
+    return true;
+  });
 
   const handleDeleteTask = async (item: TaskProps) => {
     let isUndone = false;
@@ -166,7 +215,7 @@ export default function Dashboard({ user }: HomeProps) {
           width: "100%",
         }}
       >
-        <span>Tarefa removida</span>
+        <span>Excluir tarefa?</span>
         <button
           onClick={() => {
             isUndone = true;
@@ -186,7 +235,7 @@ export default function Dashboard({ user }: HomeProps) {
         </button>
       </div>,
       {
-        autoClose: 5000,
+        autoClose: 4000,
         closeOnClick: false,
         onClose: async () => {
           if (!isUndone) {
@@ -199,16 +248,27 @@ export default function Dashboard({ user }: HomeProps) {
     );
   };
 
-  const filteredTasks = tasks.filter((item) => {
-    if (filter === "completed") return item.completed === true;
-    if (filter === "pending") return item.completed === false;
-    return true;
-  });
+  async function handleToggleComplete(id: string, completed: boolean) {
+    await updateDoc(doc(db, "tarefas", id), { completed: !completed });
+  }
+
+  async function handleShare(id: string) {
+    await navigator.clipboard.writeText(`${window.location.origin}/task/${id}`);
+    toast.info("URL Copiada!");
+  }
+
+  function handleEdit(item: TaskProps) {
+    setInput(item.tarefa);
+    setPriority(item.priority);
+    setPublicTask(item.public);
+    setEditingTaskId(item.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   return (
     <div className={styles.container}>
       <Head>
-        <title>Meu painel de tarefas - 2026</title>
+        <title>Dashboard - OrganizaTask 2026</title>
       </Head>
 
       <main className={styles.main}>
@@ -223,7 +283,7 @@ export default function Dashboard({ user }: HomeProps) {
               }}
             >
               <h1 className={styles.title} style={{ margin: 0 }}>
-                Qual sua tarefa hoje?
+                Dashboard
               </h1>
               {isAdmin && (
                 <Link
@@ -248,13 +308,12 @@ export default function Dashboard({ user }: HomeProps) {
 
             <form onSubmit={handleRegisterTask}>
               <Textarea
-                placeholder="Digite sua tarefa..."
+                placeholder="O que vamos fazer hoje?"
                 value={input}
                 onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                   setInput(e.target.value)
                 }
               />
-
               <div
                 style={{
                   display: "flex",
@@ -283,10 +342,9 @@ export default function Dashboard({ user }: HomeProps) {
                       fontSize: "15px",
                     }}
                   >
-                    Tornar pública?
+                    Pública?
                   </label>
                 </div>
-
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
@@ -332,13 +390,12 @@ export default function Dashboard({ user }: HomeProps) {
                   ))}
                 </div>
               </div>
-
               <button
                 className={styles.button}
                 type="submit"
                 style={{ marginTop: "20px" }}
               >
-                {editingTaskId ? "ATUALIZAR TAREFA" : "REGISTRAR TAREFA"}
+                {editingTaskId ? "SALVAR TAREFA" : "ADICIONAR TAREFA"}
               </button>
             </form>
           </div>
@@ -357,7 +414,7 @@ export default function Dashboard({ user }: HomeProps) {
             <h2
               style={{ color: "#333", marginBottom: "15px", fontSize: "22px" }}
             >
-              Minhas tarefas
+              Minhas tarefas ({totalCount})
             </h2>
             <div
               style={{
@@ -403,7 +460,6 @@ export default function Dashboard({ user }: HomeProps) {
                 flexDirection: "column",
               }}
             >
-              {/* TAGS NO TOPO */}
               <div
                 className={styles.tagContainer}
                 style={{ display: "flex", gap: "8px", marginBottom: "15px" }}
@@ -424,7 +480,6 @@ export default function Dashboard({ user }: HomeProps) {
                 </label>
               </div>
 
-              {/* CONTEÚDO: TAREFA À ESQUERDA | ÍCONES À DIREITA */}
               <div
                 style={{
                   display: "flex",
@@ -435,7 +490,6 @@ export default function Dashboard({ user }: HomeProps) {
                   width: "100%",
                 }}
               >
-                {/* TEXTO À ESQUERDA */}
                 <div style={{ flex: 1, minWidth: "250px" }}>
                   {item.public ? (
                     <Link
@@ -473,7 +527,6 @@ export default function Dashboard({ user }: HomeProps) {
                   )}
                 </div>
 
-                {/* ÍCONES À DIREITA */}
                 <div
                   style={{
                     display: "flex",
@@ -530,6 +583,37 @@ export default function Dashboard({ user }: HomeProps) {
               </div>
             </article>
           ))}
+
+          {hasMore && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: "30px",
+              }}
+            >
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  background: "#3183ff",
+                  color: "#FFF",
+                  border: "none",
+                  padding: "10px 30px",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  transition: "0.3s",
+                }}
+              >
+                <FiPlusCircle />{" "}
+                {loadingMore ? "Processando..." : "CARREGAR MAIS"}
+              </button>
+            </div>
+          )}
         </section>
       </main>
 
