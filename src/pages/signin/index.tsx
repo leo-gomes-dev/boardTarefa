@@ -1,41 +1,65 @@
-import Head from "next/head";
-import { signIn } from "next-auth/react";
 import styles from "./styles.module.css";
-import { FaGoogle, FaRocket } from "react-icons/fa";
+import { useSession, signIn, signOut } from "next-auth/react";
+import Link from "next/link";
+import { useRouter } from "next/router";
 
-export default function SignIn() {
+export function Header() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  // Verificação de Rotas
+  const isHomePage = router.pathname === "/";
+  const isSalesPage = router.pathname === "/premium";
+  const isSignInPage = router.pathname === "/signin"; // NOVA CONSTANTE
+
+  const isOnAdminPage = router.pathname === "/admin";
+  const isDashboardPage = router.pathname === "/dashboard";
+
+  const allowedAdminEmails = [
+    "leogomdesenvolvimento@gmail.com",
+    "leogomesdeveloper@gmail.com",
+    "leogomecommerce@gmail.com",
+  ];
+
+  const isAdminUser =
+    session?.user?.email && allowedAdminEmails.includes(session.user.email);
+
   return (
-    <div className={styles.container}>
-      <Head>
-        <title>Acessar conta | OrganizaTask</title>
-      </Head>
+    <header className={styles.header}>
+      <section className={styles.content}>
+        <nav className={styles.nav}>
+          <Link href="/">
+            <h1 className={styles.logo}>Tasks</h1>
+          </Link>
 
-      <main className={styles.main}>
-        <div className={styles.loginCard}>
-          <div className={styles.header}>
-            <FaRocket size={40} color="#3183ff" />
-            <h1>Sua produtividade começa aqui</h1>
-            <p>
-              Faça login para gerenciar suas tarefas e projetos de forma
-              profissional.
-            </p>
-          </div>
+          {session?.user && !isDashboardPage && !isSalesPage && (
+            <Link href="/dashboard" className={styles.link}>
+              Painel
+            </Link>
+          )}
 
-          <div className={styles.buttonArea}>
-            <button
-              className={styles.googleButton}
-              onClick={() => signIn("google", { callbackUrl: "/premium" })}
-            >
-              <FaGoogle size={20} />
-              Continuar com Google
-            </button>
-          </div>
+          {!isOnAdminPage && isAdminUser && !isSalesPage && (
+            <Link href="/admin" className={styles.link}>
+              Admin
+            </Link>
+          )}
+        </nav>
 
-          <p className={styles.footerText}>
-            Ambiente seguro e autenticado via Google Accounts.
-          </p>
-        </div>
-      </main>
-    </div>
+        {/* 
+            LÓGICA UX 2026: 
+            Ocultamos o botão nas páginas de entrada (Home, Premium e Login).
+            O usuário só verá o botão se já estiver logado (para sair) 
+            ou se estiver em páginas internas deslogado.
+        */}
+        {((!isHomePage && !isSalesPage && !isSignInPage) || session) && (
+          <button
+            className={styles.loginButton}
+            onClick={() => (session ? signOut() : signIn("google"))}
+          >
+            {session ? `Olá ${session?.user?.name?.split(" ")}` : "Acessar"}
+          </button>
+        )}
+      </section>
+    </header>
   );
 }
