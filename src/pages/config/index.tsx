@@ -3,7 +3,7 @@ import Head from "next/head";
 import { getSession } from "next-auth/react";
 import { GetServerSideProps } from "next";
 import { db } from "../../services/firebaseConnection";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -21,9 +21,12 @@ export default function PaginaConfiguracoes({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadConfigs() {
-      const userRef = doc(db, "users", userEmail);
-      const docSnap = await getDoc(userRef);
+    if (!userEmail) return;
+
+    const userRef = doc(db, "users", userEmail);
+
+    // Observa alterações em tempo real
+    const unsub = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setBasicValor(data.planoBasicValor || "0,00");
@@ -34,8 +37,9 @@ export default function PaginaConfiguracoes({
         setTrienalDesc(data.planoTrienalDescricao || "Apenas R$ 7,90 por mês");
       }
       setLoading(false);
-    }
-    loadConfigs();
+    });
+
+    return () => unsub();
   }, [userEmail]);
 
   async function handleSave(e: React.FormEvent) {
@@ -52,17 +56,15 @@ export default function PaginaConfiguracoes({
           planoBasicDescricao: basicDesc,
           planoAnualValor: anualValor,
           planoAnualDescricao: anualDesc,
-          // ALTERE AQUI: De planoVitalicio para planoTrienal
           planoTrienalValor: trienalValor,
           planoTrienalDescricao: trienalDesc,
-          isAdmin: true,
           updatedAt: new Date(),
         },
         { merge: true }
       );
 
       toast.success("🔥 PREÇOS ATUALIZADOS COM SUCESSO!");
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Erro ao salvar.");
     } finally {
       setLoading(false);
@@ -91,6 +93,7 @@ export default function PaginaConfiguracoes({
             marginTop: "30px",
           }}
         >
+          {/** Plano Basic */}
           <div
             style={{
               background: "#1a1a1a",
@@ -125,6 +128,8 @@ export default function PaginaConfiguracoes({
               placeholder="Descrição"
             />
           </div>
+
+          {/** Plano Anual */}
           <div
             style={{
               background: "#1a1a1a",
@@ -159,6 +164,8 @@ export default function PaginaConfiguracoes({
               placeholder="Descrição"
             />
           </div>
+
+          {/** Plano Trienal */}
           <div
             style={{
               background: "#1a1a1a",
@@ -193,6 +200,7 @@ export default function PaginaConfiguracoes({
               placeholder="Descrição"
             />
           </div>
+
           <button
             type="submit"
             style={{
