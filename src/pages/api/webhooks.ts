@@ -13,38 +13,29 @@ import { Resend } from "resend";
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
-
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Em produção na Coolify, o MP pode as vezes testar a rota via GET/PUT. Retornamos 200 sempre para não dar erro de Proxy.
-  if (req.method !== "POST") {
-    return res.status(200).send("Method Not Allowed mas OK para Proxy");
-  }
+  // Responde 200 para qualquer método que não seja POST (evita erros de pre-flight do proxy)
+  if (req.method !== "POST") return res.status(200).send("OK");
 
-  // Captura robusta do ID para garantir que o PIX (que as vezes envia o ID via data.id ou query) seja lido
-  const { action, type, data } = req.body;
-  const paymentId =
-    data?.id || req.body?.id || req.body?.data?.id || req.query?.id;
+  const { data, action } = req.body;
+  const paymentId = data?.id || req.body?.id || req.query?.id;
 
-  if (paymentId && (type === "payment" || action?.includes("payment"))) {
-    try {
-      const payment = await new Payment(client).get({ id: String(paymentId) });
+  if (!paymentId) return res.status(200).send("Sem ID");
 
-      if (payment.status !== "approved") {
-        return res.status(200).send("Aguardando aprovação");
-      }
+  try {
+    const payment = await new Payment(client).get({ id: String(paymentId) });
 
+    if (payment.status === "approved") {
       const userEmail = payment.metadata?.email;
       const planoNome = payment.metadata?.plano;
 
-      if (!userEmail || !planoNome) {
-        console.log("LOG: Notificação sem metadados.");
-        return res.status(200).send("OK (Sem metadados)");
-      }
+      if (!userEmail || !planoNome)
+        return res.status(200).send("Metadata ausente");
 
       const userRef = doc(db, "users", userEmail);
       const userSnap = await getDoc(userRef);
@@ -53,7 +44,7 @@ export default async function handler(
         userSnap.exists() &&
         userSnap.data()?.paymentId === String(paymentId)
       ) {
-        return res.status(200).send("Já processado");
+        return res.status(200).send("Ja processado");
       }
 
       const dataExpiracaoJS = new Date();
@@ -61,7 +52,7 @@ export default async function handler(
         ? dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 3)
         : dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 1);
 
-      // --- 1. ATUALIZA O BANCO (PRIORIDADE) ---
+      // 1. Atualiza Firebase
       await setDoc(
         userRef,
         {
@@ -75,11 +66,10 @@ export default async function handler(
         { merge: true }
       );
 
-      // --- 2. ENVIA O E-MAIL (MANTIDO SEU HTML ORIGINAL) ---
+      // 2. Envia E-mail (Seu HTML original)
       try {
         const baseUrl =
           process.env.NEXTAUTH_URL || "https://tarefas.leogomesdev.com";
-
         await resend.emails.send({
           from: "OrganizaTask <suporte@leogomesdev.com>",
           to: [userEmail],
@@ -104,15 +94,13 @@ export default async function handler(
           `,
         });
       } catch (e) {
-        console.error("LOG: Falha no e-mail, mas banco atualizado.");
+        console.error("Erro email:", e);
       }
-
-      return res.status(200).json({ success: true });
-    } catch (error) {
-      console.error("LOG: Erro Webhook:", error);
-      return res.status(200).send("Erro tratado para evitar loop do MP");
     }
-  }
 
-  return res.status(200).send("OK");
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Erro Webhook:", error);
+    return res.status(200).send("Erro silenciado");
+  }
 }
