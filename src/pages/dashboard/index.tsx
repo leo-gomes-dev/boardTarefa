@@ -287,16 +287,31 @@ export default function Dashboard({ user }: HomeProps) {
                 </select>
               </div>
 
-              <div className={styles.checkboxArea}>
+              <div className={styles.checkboxArea} style={{ marginBottom: 15 }}>
                 <input
                   type="checkbox"
                   className={styles.checkbox}
                   checked={publicTask}
                   onChange={handleChangePublic}
                 />
-                <label style={{ color: "#fff" }}>Deixar tarefa pública?</label>
+                <label style={{ color: "#fff", marginLeft: 8 }}>
+                  Deixar tarefa pública?
+                </label>
               </div>
 
+              {/* ÚNICO BOTÃO DE AÇÃO PRINCIPAL */}
+              <button
+                className={styles.button}
+                type="submit"
+                disabled={!editingTaskId && tasks.length >= 50}
+                style={{
+                  opacity: !editingTaskId && tasks.length >= 50 ? 0.5 : 1,
+                }}
+              >
+                {editingTaskId ? "Salvar Alterações" : "Registrar Tarefa"}
+              </button>
+
+              {/* BOTÃO DE CANCELAR (SÓ APARECE NA EDIÇÃO) */}
               {editingTaskId && (
                 <button
                   type="button"
@@ -312,33 +327,11 @@ export default function Dashboard({ user }: HomeProps) {
                   Cancelar Edição
                 </button>
               )}
-              {/* Adicione isso logo abaixo do seu formulário ou dentro dele */}
-              <p
-                style={{
-                  color: tasks.length >= 5 ? "#ea3140" : "#ccc",
-                  fontSize: "14px",
-                  marginTop: "5px",
-                }}
-              >
-                {tasks.length} / 50 tarefas utilizadas
-              </p>
-
-              <button
-                className={styles.button}
-                type="submit"
-                disabled={!editingTaskId && tasks.length >= 50}
-                style={{
-                  opacity: !editingTaskId && tasks.length >= 50 ? 0.5 : 1,
-                }}
-              >
-                {editingTaskId ? "Atualizar" : "Registrar"}
-              </button>
             </form>
           </div>
         </section>
 
         <section className={styles.taskContainer}>
-          {/* Filtros de Tarefas */}
           <div
             style={{
               display: "flex",
@@ -466,28 +459,44 @@ export default function Dashboard({ user }: HomeProps) {
           ))}
         </section>
       </main>
-      <ToastContainer />
+
+      {/* MODAL DE LIMITE (Faltava este bloco no final para 2026) */}
+      {showLimitModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Limite Atingido!</h2>
+            <p>
+              Você atingiu o limite de 50 tarefas gratuitas. Para continuar,
+              adquira o plano ilimitado.
+            </p>
+            <div className={styles.modalActions}>
+              <Link
+                href="https://seulink.com"
+                target="_blank"
+                className={styles.linkBuy}
+              >
+                Liberar Acesso Ilimitado
+              </Link>
+              <button
+                onClick={() => setShowLimitModal(false)}
+                className={styles.buttonClose}
+              >
+                Talvez mais tarde
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ToastContainer autoClose={3000} />
     </div>
   );
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
-
   if (!session?.user) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
+    return { redirect: { destination: "/", permanent: false } };
   }
-
-  return {
-    props: {
-      user: {
-        email: session?.user?.email,
-      },
-    },
-  };
+  return { props: { user: { email: session?.user?.email } } };
 };
