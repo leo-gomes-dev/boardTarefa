@@ -175,7 +175,10 @@
   gap: 10px;
 }
 
-.trashButton {
+.trashButton,
+.editButton,
+.shareButton,
+.checkButton {
   background: transparent;
   border: 0;
   cursor: pointer;
