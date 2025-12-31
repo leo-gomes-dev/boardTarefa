@@ -230,58 +230,119 @@ export default function Dashboard({ user }: HomeProps) {
                   display: "flex",
                   flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "space-between", // Empurra o checkbox para a esquerda e o select para a direita
+                  justifyContent: "space-between",
                   gap: "15px",
-                  marginTop: "15px",
+                  marginTop: "20px",
+                  marginBottom: "20px",
                 }}
               >
-                {/* Checkbox agora à esquerda */}
+                {/* 1. Checkbox à Esquerda */}
                 <div
                   className={styles.checkboxArea}
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                  style={{
+                    margin: 0,
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
                 >
-                  <input
-                    type="checkbox"
-                    id="public_check"
-                    checked={publicTask}
-                    onChange={(e) => setPublicTask(e.target.checked)}
-                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
-                  />
                   <label
                     htmlFor="public_check"
                     style={{
-                      color: "#FFF",
+                      margin: 0,
                       cursor: "pointer",
-                      fontSize: "14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      color: "#FFF",
                     }}
                   >
-                    Tornar tarefa pública?
+                    <input
+                      type="checkbox"
+                      id="public_check"
+                      checked={publicTask}
+                      onChange={(e) => setPublicTask(e.target.checked)}
+                      style={{
+                        width: "18px",
+                        height: "18px",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span style={{ fontSize: "15px" }}>
+                      Tornar tarefa pública?
+                    </span>
                   </label>
                 </div>
 
-                {/* Prioridade agora à direita */}
+                {/* 2. Botões de Prioridade à Direita (Substituindo o select feio) */}
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "10px" }}
                 >
-                  <span style={{ color: "#FFF", fontSize: "14px" }}>
-                    Prioridade:
-                  </span>
-                  <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
+                  <span
                     style={{
-                      padding: "8px",
-                      borderRadius: "4px",
-                      background: "#121212",
                       color: "#FFF",
-                      border: "1px solid #333",
-                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "bold",
                     }}
                   >
-                    <option value="baixa">Baixa</option>
-                    <option value="media">Média</option>
-                    <option value="alta">Alta</option>
-                  </select>
+                    Prioridade:
+                  </span>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setPriority("baixa")}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        border: "1px solid #27ae60",
+                        background:
+                          priority === "baixa" ? "#27ae60" : "transparent",
+                        color: priority === "baixa" ? "#fff" : "#27ae60",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                        fontSize: "12px",
+                        transition: "0.3s",
+                      }}
+                    >
+                      BAIXA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPriority("media")}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        border: "1px solid #f1c40f",
+                        background:
+                          priority === "media" ? "#f1c40f" : "transparent",
+                        color: priority === "media" ? "#fff" : "#f1c40f",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                        fontSize: "12px",
+                        transition: "0.3s",
+                      }}
+                    >
+                      MÉDIA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPriority("alta")}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        border: "1px solid #e74c3c",
+                        background:
+                          priority === "alta" ? "#e74c3c" : "transparent",
+                        color: priority === "alta" ? "#fff" : "#e74c3c",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                        fontSize: "12px",
+                        transition: "0.3s",
+                      }}
+                    >
+                      ALTA
+                    </button>
+                  </div>
                 </div>
               </div>
 
