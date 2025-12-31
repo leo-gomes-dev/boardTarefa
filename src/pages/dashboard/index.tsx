@@ -85,11 +85,20 @@ export default function Dashboard({ user }: HomeProps) {
       collection(db, "tarefas"),
       where("user", "==", user.email)
     );
+
     const unsubCount = onSnapshot(qCount, (snapshot) => {
-      setTotalCount(snapshot.size);
+      const size = snapshot.size;
+      setTotalCount(size);
+
+      // LÓGICA CORRIGIDA: Usa o tamanho real do banco e verifica se não é premium
+      if (!isPremium && size >= 30) {
+        setShowLimitModal(true);
+      } else {
+        setShowLimitModal(false);
+      }
     });
 
-    // Query principal com ordenação (Novas no Topo) e limite inicial
+    // Query principal para a listagem (mantém a paginação de 15 em 15)
     const q = query(
       collection(db, "tarefas"),
       where("user", "==", user.email),
@@ -115,8 +124,7 @@ export default function Dashboard({ user }: HomeProps) {
       setTasks(lista);
       setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
       setHasMore(snapshot.docs.length >= 15);
-
-      if (!isPremium && snapshot.size >= 30) setShowLimitModal(true);
+      // Removida a verificação de modal daqui, pois aqui o snapshot.size é no máximo 15
     });
 
     return () => {
