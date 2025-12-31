@@ -1,201 +1,630 @@
-import { useState } from "react";
-import Head from "next/head";
-import { useSession } from "next-auth/react";
 import { GetServerSideProps } from "next";
+import { ChangeEvent, FormEvent, useState, useEffect } from "react";
 import styles from "./styles.module.css";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import Head from "next/head";
 
-// Firebase
+import { getSession } from "next-auth/react";
+import { Textarea } from "../../components/textarea";
+import { FiShare2, FiSettings, FiPlusCircle } from "react-icons/fi";
+import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa";
+import { useRouter } from "next/router";
+
 import { db } from "../../services/firebaseConnection";
-import { doc, getDoc } from "firebase/firestore";
 
 import {
-  FaCheckCircle,
-  FaRocket,
-  FaShieldAlt,
-  FaInfinity,
-  FaStar,
-  FaCrown,
-} from "react-icons/fa";
+  addDoc,
+  collection,
+  query,
+  orderBy,
+  where,
+  onSnapshot,
+  doc,
+  deleteDoc,
+  updateDoc,
+  getDoc,
+  limit,
+  startAfter,
+  getDocs,
+  QueryDocumentSnapshot,
+  DocumentData,
+} from "firebase/firestore";
+import Link from "next/link";
 
-interface PremiumProps {
-  configs: {
-    anualValor: string;
-    anualDesc: string;
-    vitalicioValor: string;
-    vitalicioDesc: string;
-  };
+import { toast } from "react-toastify";
+import { LimitModal } from "@/components/modal/LimitModal";
+
+interface HomeProps {
+  user: { email: string };
 }
 
-export default function Premium({ configs }: PremiumProps) {
-  const { data: session } = useSession();
-  const [loading, setLoading] = useState(false);
+interface TaskProps {
+  id: string;
+  created: Date;
+  public: boolean;
+  tarefa: string;
+  user: string;
+  completed?: boolean;
+  priority: "baixa" | "media" | "alta";
+}
 
-  async function handleCheckout(plano: string, valor: string) {
-    if (!session) {
-      toast.info("Quase lá! Faça login para concluir sua assinatura.", {
-        position: "top-center",
-        autoClose: 3000,
-        theme: "dark",
+export default function Dashboard({ user }: HomeProps) {
+  const [input, setInput] = useState("");
+  const [publicTask, setPublicTask] = useState(false);
+  const [tasks, setTasks] = useState<TaskProps[]>([]);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [priority, setPriority] = useState("baixa");
+  const [filter, setFilter] = useState("all");
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+
+  // Estados para Paginação
+  const [lastVisible, setLastVisible] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const isAdmin = user?.email === "leogomdesenvolvimento@gmail.com";
+
+  useEffect(() => {
+    async function checkPremium() {
+      if (!user?.email) return;
+      const userRef = doc(db, "users", user.email);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists() && userSnap.data().status === "premium") {
+        setIsPremium(true);
+      }
+    }
+    checkPremium();
+  }, [user?.email]);
+
+  // Carregamento Inicial (Sempre traz as 15 mais recentes no topo)
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const tarefasRef = collection(db, "tarefas");
+    const q = query(
+      tarefasRef,
+      where("user", "==", user.email),
+      orderBy("created", "desc"),
+      limit(15)
+    );
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      let lista = [] as TaskProps[];
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        lista.push({
+          id: doc.id,
+          tarefa: data.tarefa,
+          created: data.created?.toDate ? data.created.toDate() : new Date(),
+          user: data.user,
+          public: data.public,
+          completed: data.completed || false,
+          priority: data.priority || "baixa",
+        });
       });
+
+      setTasks(lista);
+      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length >= 15);
+
+      if (!isPremium && lista.length >= 30) setShowLimitModal(true);
+    });
+
+    return () => unsub();
+  }, [user?.email, isPremium]);
+
+  // Busca as tarefas anteriores (mais velhas) ao clicar em carregar mais
+  async function handleLoadMore() {
+    if (!lastVisible || loadingMore) return;
+    setLoadingMore(true);
+
+    const tarefasRef = collection(db, "tarefas");
+    const q = query(
+      tarefasRef,
+      where("user", "==", user.email),
+      orderBy("created", "desc"),
+      startAfter(lastVisible),
+      limit(15)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const lista = [] as TaskProps[];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      lista.push({
+        id: doc.id,
+        tarefa: data.tarefa,
+        created: data.created?.toDate ? data.created.toDate() : new Date(),
+        user: data.user,
+        public: data.public,
+        completed: data.completed || false,
+        priority: data.priority || "baixa",
+      });
+    });
+
+    if (lista.length > 0) {
+      setTasks((prevTasks) => [...prevTasks, ...lista]);
+      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+      setHasMore(querySnapshot.docs.length >= 15);
+    } else {
+      setHasMore(false);
+    }
+    setLoadingMore(false);
+  }
+
+  async function handleRegisterTask(event: FormEvent) {
+    event.preventDefault();
+    if (input.trim() === "") {
+      toast.warn("Preencha a tarefa!");
       return;
     }
 
-    setLoading(true);
-
     try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plano: plano,
-          valor: valor.replace(",", "."), // Garante formato numérico para a API
-          email: session.user?.email,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
+      if (editingTaskId) {
+        const docRef = doc(db, "tarefas", editingTaskId);
+        await updateDoc(docRef, {
+          tarefa: input,
+          public: publicTask,
+          priority: priority,
+          user: user.email,
+        });
+        setEditingTaskId(null);
+        toast.success("Tarefa atualizada!");
       } else {
-        throw new Error(data.error || "Erro ao gerar link de pagamento");
+        await addDoc(collection(db, "tarefas"), {
+          tarefa: input,
+          created: new Date(), // New date ensures desc order puts it at top
+          user: user.email,
+          public: publicTask,
+          completed: false,
+          priority: priority,
+        });
+        toast.success("Tarefa registrada!");
       }
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Erro ao iniciar checkout.", {
-        theme: "dark",
-      });
-    } finally {
-      setLoading(false);
+      setInput("");
+      setPublicTask(false);
+      setPriority("baixa");
+    } catch (err) {
+      toast.error("Erro ao salvar no banco.");
     }
+  }
+
+  const filteredTasks = tasks.filter((item) => {
+    if (filter === "completed") return item.completed === true;
+    if (filter === "pending") return item.completed === false;
+    return true;
+  });
+
+  const handleDeleteTask = async (item: TaskProps) => {
+    let isUndone = false;
+    const toastId = toast.info(
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+        }}
+      >
+        <span>Remover tarefa?</span>
+        <button
+          onClick={() => {
+            isUndone = true;
+            toast.dismiss(toastId);
+          }}
+          style={{
+            background: "#FFF",
+            color: "#3183ff",
+            border: "none",
+            padding: "4px 10px",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          Desfazer
+        </button>
+      </div>,
+      {
+        autoClose: 4000,
+        closeOnClick: false,
+        onClose: async () => {
+          if (!isUndone) {
+            await deleteDoc(doc(db, "tarefas", item.id));
+          } else {
+            toast.success("Ação desfeita!");
+          }
+        },
+      }
+    );
+  };
+
+  async function handleToggleComplete(id: string, completed: boolean) {
+    const docRef = doc(db, "tarefas", id);
+    await updateDoc(docRef, { completed: !completed });
+  }
+
+  async function handleShare(id: string) {
+    await navigator.clipboard.writeText(`${window.location.origin}/task/${id}`);
+    toast.info("URL Copiada!");
+  }
+
+  function handleEdit(item: TaskProps) {
+    setInput(item.tarefa);
+    setPriority(item.priority);
+    setPublicTask(item.public);
+    setEditingTaskId(item.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
     <div className={styles.container}>
       <Head>
-        <title>Upgrade Premium - OrganizaTask 2026</title>
+        <title>Meu painel de tarefas - 2026</title>
       </Head>
 
       <main className={styles.main}>
-        <section className={styles.header}>
-          <FaRocket size={50} color="#3183ff" />
-          <h1>Eleve sua produtividade ao próximo nível</h1>
-          <p>Escolha o plano ideal para sua rotina em 2026.</p>
+        <section className={styles.content}>
+          <div className={styles.contentForm}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "20px",
+              }}
+            >
+              <h1 className={styles.title} style={{ margin: 0 }}>
+                Dashboard
+              </h1>
+              {isAdmin && (
+                <Link
+                  href="/config"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    backgroundColor: "#3183ff",
+                    color: "#FFF",
+                    padding: "6px 12px",
+                    borderRadius: "4px",
+                    textDecoration: "none",
+                    fontWeight: "bold",
+                    fontSize: "12px",
+                  }}
+                >
+                  <FiSettings size={16} /> Configurações
+                </Link>
+              )}
+            </div>
+
+            <form onSubmit={handleRegisterTask}>
+              <Textarea
+                placeholder="Qual o plano para hoje?"
+                value={input}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                  setInput(e.target.value)
+                }
+              />
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "15px",
+                  marginTop: "15px",
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
+                  <input
+                    type="checkbox"
+                    id="public_check"
+                    checked={publicTask}
+                    onChange={(e) => setPublicTask(e.target.checked)}
+                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                  />
+                  <label
+                    htmlFor="public_check"
+                    style={{
+                      color: "#FFF",
+                      cursor: "pointer",
+                      fontSize: "15px",
+                    }}
+                  >
+                    Pública?
+                  </label>
+                </div>
+
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  {["baixa", "media", "alta"].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPriority(p as any)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "15px",
+                        border: `1px solid ${
+                          p === "alta"
+                            ? "#ea3140"
+                            : p === "media"
+                            ? "#ff9b2d"
+                            : "#27ae60"
+                        }`,
+                        background:
+                          priority === p
+                            ? p === "alta"
+                              ? "#ea3140"
+                              : p === "media"
+                              ? "#ff9b2d"
+                              : "#27ae60"
+                            : "transparent",
+                        color:
+                          priority === p
+                            ? "#FFF"
+                            : p === "alta"
+                            ? "#ea3140"
+                            : p === "media"
+                            ? "#ff9b2d"
+                            : "#27ae60",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        transition: "0.3s",
+                      }}
+                    >
+                      {p.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                className={styles.button}
+                type="submit"
+                style={{ marginTop: "20px" }}
+              >
+                {editingTaskId ? "SALVAR ALTERAÇÕES" : "CRIAR TAREFA"}
+              </button>
+            </form>
+          </div>
         </section>
 
-        <div className={styles.plansArea}>
-          {/* PLANO ANUAL DINÂMICO */}
-          <div className={`${styles.card} ${styles.recommended}`}>
-            <div className={styles.badge}>MAIS VENDIDO</div>
-            <div className={styles.cardHeader}>
-              <FaStar size={30} color="#f1c40f" />
-              <span>PLANO ANUAL</span>
-              <h2>Premium Plus</h2>
-              <div className={styles.price}>
-                <span className={styles.currency}>R$</span>
-                <span className={styles.amount}>{configs.anualValor}</span>
-              </div>
-              <p className={styles.totalPrice}>{configs.anualDesc}</p>
-            </div>
-
-            <ul className={styles.features}>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> <FaInfinity /> Tarefas
-                ilimitadas
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Suporte prioritário 24/7
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Backup em tempo real
-              </li>
-            </ul>
-
-            <button
-              onClick={() => handleCheckout("Premium Plus", configs.anualValor)}
-              disabled={loading}
-              className={styles.buyButton}
+        <section className={styles.taskContainer}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginBottom: "30px",
+              width: "100%",
+            }}
+          >
+            <h2
+              style={{ color: "#333", marginBottom: "15px", fontSize: "22px" }}
             >
-              {loading ? "CARREGANDO..." : "ASSINAR AGORA"}
-            </button>
+              Minhas tarefas
+            </h2>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: "10px",
+              }}
+            >
+              {[
+                { id: "all", label: "TODAS" },
+                { id: "pending", label: "PENDENTES" },
+                { id: "completed", label: "CONCLUÍDAS" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  style={{
+                    padding: "8px 20px",
+                    borderRadius: "25px",
+                    border: "1px solid #3183ff",
+                    background: filter === f.id ? "#3183ff" : "transparent",
+                    color: filter === f.id ? "#FFF" : "#3183ff",
+                    fontWeight: "bold",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    transition: "0.3s",
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* PLANO VITALÍCIO DINÂMICO */}
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <FaCrown size={30} color="#e74c3c" />
-              <span>PLANO ÚNICO</span>
-              <h2>Enterprise</h2>
-              <div className={styles.price}>
-                <span className={styles.currency}>R$</span>
-                <span className={styles.amount}>{configs.vitalicioValor}</span>
-              </div>
-              <p className={styles.totalPrice}>{configs.vitalicioDesc}</p>
-            </div>
-
-            <ul className={styles.features}>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Tudo do Plano Anual
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Exportação de dados (CSV)
-              </li>
-              <li>
-                <FaCheckCircle color="#2ecc71" /> Mentoria de produtividade
-              </li>
-            </ul>
-
-            <button
-              onClick={() =>
-                handleCheckout("Enterprise Vitalício", configs.vitalicioValor)
-              }
-              disabled={loading}
-              className={`${styles.buyButton} ${styles.outline}`}
+          {filteredTasks.map((item) => (
+            <article
+              key={item.id}
+              className={styles.task}
+              style={{
+                opacity: item.completed ? 0.6 : 1,
+                display: "flex",
+                flexDirection: "column",
+              }}
             >
-              {loading ? "CARREGANDO..." : "ADQUIRIR VITALÍCIO"}
-            </button>
-          </div>
-        </div>
+              <div
+                className={styles.tagContainer}
+                style={{ display: "flex", gap: "8px", marginBottom: "15px" }}
+              >
+                {item.public && <label className={styles.tag}>PÚBLICA</label>}
+                <label
+                  className={styles.tag}
+                  style={{
+                    backgroundColor:
+                      item.priority === "alta"
+                        ? "#ea3140"
+                        : item.priority === "media"
+                        ? "#ff9b2d"
+                        : "#27ae60",
+                  }}
+                >
+                  {item.priority.toUpperCase()}
+                </label>
+              </div>
 
-        <div className={styles.secure}>
-          <FaShieldAlt size={14} />
-          <span>Pagamento processado com segurança pelo Mercado Pago</span>
-        </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: "20px",
+                  width: "100%",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: "250px" }}>
+                  {item.public ? (
+                    <Link
+                      href={`/task/${item.id}`}
+                      style={{ textDecoration: "none", color: "#000" }}
+                    >
+                      <p
+                        style={{
+                          margin: 0,
+                          textDecoration: item.completed
+                            ? "line-through"
+                            : "none",
+                          wordBreak: "break-word",
+                          fontWeight: "500",
+                          fontSize: "16px",
+                        }}
+                      >
+                        {item.tarefa}
+                      </p>
+                    </Link>
+                  ) : (
+                    <p
+                      style={{
+                        margin: 0,
+                        textDecoration: item.completed
+                          ? "line-through"
+                          : "none",
+                        wordBreak: "break-word",
+                        fontWeight: "500",
+                        fontSize: "16px",
+                      }}
+                    >
+                      {item.tarefa}
+                    </p>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    onClick={() =>
+                      handleToggleComplete(item.id, item.completed || false)
+                    }
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaCheckCircle
+                      size={22}
+                      color={item.completed ? "#27ae60" : "#5c5c5c"}
+                    />
+                  </button>
+                  <button
+                    onClick={() => handleEdit(item)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaEdit size={20} color="#3183ff" />
+                  </button>
+                  <button
+                    onClick={() => handleShare(item.id)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FiShare2 size={20} color="#3183ff" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTask(item)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaTrash size={20} color="#ea3140" />
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+
+          {hasMore && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: "30px",
+              }}
+            >
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  background: "#3183ff",
+                  color: "#FFF",
+                  border: "none",
+                  padding: "10px 30px",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  transition: "0.3s",
+                }}
+              >
+                <FiPlusCircle />{" "}
+                {loadingMore ? "Carregando..." : "CARREGAR MAIS"}
+              </button>
+            </div>
+          )}
+        </section>
       </main>
 
-      <ToastContainer position="bottom-right" autoClose={5000} />
+      {showLimitModal && (
+        <LimitModal closeModal={() => setShowLimitModal(false)} />
+      )}
     </div>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async () => {
-  // Buscamos as configurações do e-mail do admin que detém as definições de preço
-  const adminEmail = "leogomdesenvolvimento@gmail.com";
-  const docRef = doc(db, "users", adminEmail);
-  const docSnap = await getDoc(docRef);
-
-  let configs = {
-    anualValor: "118,80",
-    anualDesc: "R$ 118,80 cobrados anualmente",
-    vitalicioValor: "297,00",
-    vitalicioDesc: "Acesso vitalício sem mensalidade",
-  };
-
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    configs = {
-      anualValor: data.planoAnualValor || configs.anualValor,
-      anualDesc: data.planoAnualDescricao || configs.anualDesc,
-      vitalicioValor: data.planoVitalicioValor || configs.vitalicioValor,
-      vitalicioDesc: data.planoVitalicioDescricao || configs.vitalicioDesc,
-    };
-  }
-
-  return {
-    props: {
-      configs,
-    },
-  };
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+  const session = await getSession({ req });
+  if (!session?.user)
+    return { redirect: { destination: "/", permanent: false } };
+  return { props: { user: { email: session.user.email } } };
 };
