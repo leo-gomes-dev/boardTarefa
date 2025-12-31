@@ -102,7 +102,6 @@ export default function Dashboard({ user }: HomeProps) {
 
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
-
     if (input.trim() === "") {
       toast.warn("Preencha a tarefa!");
       return;
@@ -130,12 +129,10 @@ export default function Dashboard({ user }: HomeProps) {
         });
         toast.success("Tarefa registrada!");
       }
-
       setInput("");
       setPublicTask(false);
       setPriority("baixa");
     } catch (err) {
-      console.error(err);
       toast.error("Erro ao salvar no banco.");
     }
   }
@@ -158,13 +155,48 @@ export default function Dashboard({ user }: HomeProps) {
     toast.info("URL Copiada!");
   }
 
-  const handleDeleteTask = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, "tarefas", id));
-      toast.success("Tarefa removida!");
-    } catch (err) {
-      toast.error("Erro ao remover tarefa.");
-    }
+  const handleDeleteTask = async (item: TaskProps) => {
+    let isUndone = false;
+    const toastId = toast.info(
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+        }}
+      >
+        <span>Tarefa removida</span>
+        <button
+          onClick={() => {
+            isUndone = true;
+            toast.dismiss(toastId);
+          }}
+          style={{
+            background: "#FFF",
+            color: "#3183ff",
+            border: "none",
+            padding: "4px 10px",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          Desfazer
+        </button>
+      </div>,
+      {
+        autoClose: 5000,
+        closeOnClick: false,
+        onClose: async () => {
+          if (!isUndone) {
+            await deleteDoc(doc(db, "tarefas", item.id));
+          } else {
+            toast.success("Ação desfeita!");
+          }
+        },
+      }
+    );
   };
 
   const filteredTasks = tasks.filter((item) => {
@@ -268,26 +300,26 @@ export default function Dashboard({ user }: HomeProps) {
                         borderRadius: "15px",
                         border: `1px solid ${
                           p === "alta"
-                            ? "#e74c3c"
+                            ? "#ea3140"
                             : p === "media"
-                            ? "#f1c40f"
+                            ? "#ff9b2d"
                             : "#27ae60"
                         }`,
                         background:
                           priority === p
                             ? p === "alta"
-                              ? "#e74c3c"
+                              ? "#ea3140"
                               : p === "media"
-                              ? "#f1c40f"
+                              ? "#ff9b2d"
                               : "#27ae60"
                             : "transparent",
                         color:
                           priority === p
                             ? "#FFF"
                             : p === "alta"
-                            ? "#e74c3c"
+                            ? "#ea3140"
                             : p === "media"
-                            ? "#f1c40f"
+                            ? "#ff9b2d"
                             : "#27ae60",
                         fontSize: "11px",
                         fontWeight: "bold",
@@ -348,7 +380,7 @@ export default function Dashboard({ user }: HomeProps) {
                     borderRadius: "25px",
                     border: "1px solid #3183ff",
                     background: filter === f.id ? "#3183ff" : "transparent",
-                    color: filter === f.id ? "#FFF" : "#3183ff", // COR RIGIDA PARA FUNDO BRANCO
+                    color: filter === f.id ? "#FFF" : "#3183ff",
                     fontWeight: "bold",
                     fontSize: "12px",
                     cursor: "pointer",
@@ -365,9 +397,17 @@ export default function Dashboard({ user }: HomeProps) {
             <article
               key={item.id}
               className={styles.task}
-              style={{ opacity: item.completed ? 0.6 : 1 }}
+              style={{
+                opacity: item.completed ? 0.6 : 1,
+                display: "flex",
+                flexDirection: "column",
+              }}
             >
-              <div className={styles.tagContainer}>
+              {/* TAGS NO TOPO */}
+              <div
+                className={styles.tagContainer}
+                style={{ display: "flex", gap: "8px", marginBottom: "15px" }}
+              >
                 {item.public && <label className={styles.tag}>PÚBLICA</label>}
                 <label
                   className={styles.tag}
@@ -382,13 +422,74 @@ export default function Dashboard({ user }: HomeProps) {
                 >
                   {item.priority.toUpperCase()}
                 </label>
+              </div>
 
-                <div className={styles.taskActions}>
+              {/* CONTEÚDO: TAREFA À ESQUERDA | ÍCONES À DIREITA */}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: "20px",
+                  width: "100%",
+                }}
+              >
+                {/* TEXTO À ESQUERDA */}
+                <div style={{ flex: 1, minWidth: "250px" }}>
+                  {item.public ? (
+                    <Link
+                      href={`/task/${item.id}`}
+                      style={{ textDecoration: "none", color: "#000" }}
+                    >
+                      <p
+                        style={{
+                          margin: 0,
+                          textDecoration: item.completed
+                            ? "line-through"
+                            : "none",
+                          wordBreak: "break-word",
+                          fontWeight: "500",
+                          fontSize: "16px",
+                        }}
+                      >
+                        {item.tarefa}
+                      </p>
+                    </Link>
+                  ) : (
+                    <p
+                      style={{
+                        margin: 0,
+                        textDecoration: item.completed
+                          ? "line-through"
+                          : "none",
+                        wordBreak: "break-word",
+                        fontWeight: "500",
+                        fontSize: "16px",
+                      }}
+                    >
+                      {item.tarefa}
+                    </p>
+                  )}
+                </div>
+
+                {/* ÍCONES À DIREITA */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    justifyContent: "flex-end",
+                  }}
+                >
                   <button
-                    className={styles.checkButton}
                     onClick={() =>
                       handleToggleComplete(item.id, item.completed || false)
                     }
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
                   >
                     <FaCheckCircle
                       size={22}
@@ -396,48 +497,36 @@ export default function Dashboard({ user }: HomeProps) {
                     />
                   </button>
                   <button
-                    className={styles.editButton}
                     onClick={() => handleEdit(item)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
                   >
                     <FaEdit size={20} color="#3183ff" />
                   </button>
                   <button
-                    className={styles.shareButton}
                     onClick={() => handleShare(item.id)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
                   >
                     <FiShare2 size={20} color="#3183ff" />
                   </button>
                   <button
-                    className={styles.trashButton}
-                    onClick={() => handleDeleteTask(item.id)}
+                    onClick={() => handleDeleteTask(item)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
                   >
                     <FaTrash size={20} color="#ea3140" />
                   </button>
                 </div>
-              </div>
-
-              <div className={styles.taskContent}>
-                {item.public ? (
-                  <Link href={`/task/${item.id}`}>
-                    <p
-                      style={{
-                        textDecoration: item.completed
-                          ? "line-through"
-                          : "none",
-                      }}
-                    >
-                      {item.tarefa}
-                    </p>
-                  </Link>
-                ) : (
-                  <p
-                    style={{
-                      textDecoration: item.completed ? "line-through" : "none",
-                    }}
-                  >
-                    {item.tarefa}
-                  </p>
-                )}
               </div>
             </article>
           ))}
@@ -453,8 +542,7 @@ export default function Dashboard({ user }: HomeProps) {
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
-  if (!session?.user) {
+  if (!session?.user)
     return { redirect: { destination: "/", permanent: false } };
-  }
   return { props: { user: { email: session.user.email } } };
 };
