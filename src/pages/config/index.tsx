@@ -12,10 +12,12 @@ export default function PaginaConfiguracoes({
 }: {
   userEmail: string;
 }) {
+  const [basicValor, setBasicValor] = useState("");
+  const [basicDesc, setBasicDesc] = useState("");
   const [anualValor, setAnualValor] = useState("");
   const [anualDesc, setAnualDesc] = useState("");
-  const [vitalicioValor, setVitalicioValor] = useState("");
-  const [vitalicioDesc, setVitalicioDesc] = useState("");
+  const [trienalValor, setTrienalValor] = useState("");
+  const [trienalDesc, setTrienalDesc] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,13 +29,16 @@ export default function PaginaConfiguracoes({
 
         if (docSnap.exists()) {
           const data = docSnap.data();
+          // Carregando Basic
+          setBasicValor(data.planoBasicValor || "0,00");
+          setBasicDesc(data.planoBasicDescricao || "Grátis para iniciantes");
+          // Carregando Anual
           setAnualValor(data.planoAnualValor || "118,80");
-          setAnualDesc(
-            data.planoAnualDescricao || "R$ 118,80 cobrados anualmente"
-          );
-          setVitalicioValor(data.planoVitalicioValor || "297,00");
-          setVitalicioDesc(
-            data.planoVitalicioDescricao || "Acesso vitalício sem mensalidade"
+          setAnualDesc(data.planoAnualDescricao || "Equivalente a R$ 9,90/mês");
+          // Carregando Trienal (Substituindo Vitalício)
+          setTrienalValor(data.planoTrienalValor || "297,00");
+          setTrienalDesc(
+            data.planoTrienalDescricao || "Economia máxima por 3 anos"
           );
         }
       } catch (e) {
@@ -49,37 +54,48 @@ export default function PaginaConfiguracoes({
     e.preventDefault();
     setLoading(true);
 
-    if (!db) {
-      toast.error("Erro crítico: Banco de dados não inicializado.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      // Usamos setDoc para garantir a criação do documento
       const userRef = doc(db, "users", userEmail);
 
       await setDoc(
         userRef,
         {
+          planoBasicValor: basicValor,
+          planoBasicDescricao: basicDesc,
           planoAnualValor: anualValor,
           planoAnualDescricao: anualDesc,
-          planoVitalicioValor: vitalicioValor,
-          planoVitalicioDescricao: vitalicioDesc,
+          planoTrienalValor: trienalValor,
+          planoTrienalDescricao: trienalDesc,
           isAdmin: true,
           updatedAt: new Date(),
         },
         { merge: true }
       );
 
-      toast.success("🔥 PREÇOS ATUALIZADOS COM SUCESSO!");
+      toast.success("🔥 TODOS OS 03 PLANOS ATUALIZADOS!");
     } catch (error: any) {
-      console.error("ERRO DETALHADO DO FIREBASE:", error);
-      toast.error(`ERRO: ${error.message || "Erro desconhecido ao salvar"}`);
+      toast.error(`ERRO: ${error.message || "Erro ao salvar"}`);
     } finally {
       setLoading(false);
     }
   }
+
+  const inputStyle = {
+    width: "100%",
+    padding: "12px",
+    margin: "8px 0",
+    background: "#000",
+    color: "#fff",
+    border: "1px solid #333",
+    borderRadius: "4px",
+  };
+
+  const cardStyle = {
+    background: "#1a1a1a",
+    padding: "20px",
+    borderRadius: "8px",
+    borderLeft: "4px solid",
+  };
 
   return (
     <div
@@ -91,84 +107,68 @@ export default function PaginaConfiguracoes({
       }}
     >
       <Head>
-        <title>Ajustar Preços - 2026</title>
+        <title>Painel Admin 2026 - OrganizaTask</title>
       </Head>
-      <main style={{ maxWidth: "600px", margin: "0 auto" }}>
-        <h1>Configurações de Admin</h1>
-        <p>Logado como: {userEmail}</p>
+      <main style={{ maxWidth: "700px", margin: "0 auto" }}>
+        <h1 style={{ marginBottom: "10px" }}>Configurações de Preços</h1>
+        <p style={{ color: "#94a3b8", marginBottom: "30px" }}>
+          Admin: {userEmail}
+        </p>
 
         <form
           onSubmit={handleSave}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-            marginTop: "20px",
-          }}
+          style={{ display: "flex", flexDirection: "column", gap: "25px" }}
         >
-          <div
-            style={{
-              background: "#1a1a1a",
-              padding: "20px",
-              borderRadius: "8px",
-            }}
-          >
-            <h3 style={{ color: "#3183ff" }}>Plano Anual</h3>
+          {/* CONFIG BASIC */}
+          <div style={{ ...cardStyle, borderLeftColor: "#94a3b8" }}>
+            <h3 style={{ color: "#94a3b8" }}>1. Plano Basic (Starter)</h3>
             <input
-              style={{
-                width: "100%",
-                padding: "10px",
-                margin: "10px 0",
-                background: "#000",
-                color: "#fff",
-              }}
-              value={anualValor}
-              onChange={(e) => setAnualValor(e.target.value)}
-              placeholder="Valor"
+              style={inputStyle}
+              value={basicValor}
+              onChange={(e) => setBasicValor(e.target.value)}
+              placeholder="Valor (ex: 0,00)"
             />
             <input
-              style={{
-                width: "100%",
-                padding: "10px",
-                background: "#000",
-                color: "#fff",
-              }}
-              value={anualDesc}
-              onChange={(e) => setAnualDesc(e.target.value)}
-              placeholder="Descrição"
+              style={inputStyle}
+              value={basicDesc}
+              onChange={(e) => setBasicDesc(e.target.value)}
+              placeholder="Descrição curta"
             />
           </div>
 
-          <div
-            style={{
-              background: "#1a1a1a",
-              padding: "20px",
-              borderRadius: "8px",
-            }}
-          >
-            <h3 style={{ color: "#e74c3c" }}>Plano Vitalício</h3>
+          {/* CONFIG ANUAL */}
+          <div style={{ ...cardStyle, borderLeftColor: "#3183ff" }}>
+            <h3 style={{ color: "#3183ff" }}>2. Plano Anual (Premium Plus)</h3>
             <input
-              style={{
-                width: "100%",
-                padding: "10px",
-                margin: "10px 0",
-                background: "#000",
-                color: "#fff",
-              }}
-              value={vitalicioValor}
-              onChange={(e) => setVitalicioValor(e.target.value)}
-              placeholder="Valor"
+              style={inputStyle}
+              value={anualValor}
+              onChange={(e) => setAnualValor(e.target.value)}
+              placeholder="Valor (ex: 118,80)"
             />
             <input
-              style={{
-                width: "100%",
-                padding: "10px",
-                background: "#000",
-                color: "#fff",
-              }}
-              value={vitalicioDesc}
-              onChange={(e) => setVitalicioDesc(e.target.value)}
-              placeholder="Descrição"
+              style={inputStyle}
+              value={anualDesc}
+              onChange={(e) => setAnualDesc(e.target.value)}
+              placeholder="Descrição curta"
+            />
+          </div>
+
+          {/* CONFIG TRIENAL */}
+          <div style={{ ...cardStyle, borderLeftColor: "#e74c3c" }}>
+            <h3 style={{ color: "#e74c3c" }}>
+              3. Plano 36 Meses (Enterprise Gold)
+            </h3>
+            <input
+              style={inputStyle}
+              value={trienalValor}
+              onChange={(e) => setTrienalValor(e.target.value)}
+              placeholder="Valor (ex: 297,00)"
+            />
+            <input
+              style={inputStyle}
+              value={trienalDesc}
+              onChange={(e) => setTrienalDesc(e.target.value)}
+              placeholder="Descrição curta"
             />
           </div>
 
@@ -176,14 +176,18 @@ export default function PaginaConfiguracoes({
             type="submit"
             disabled={loading}
             style={{
-              padding: "15px",
+              padding: "18px",
               background: "#3183ff",
               color: "#fff",
               fontWeight: "bold",
+              fontSize: "1rem",
               cursor: "pointer",
+              border: "none",
+              borderRadius: "8px",
+              transition: "0.2s",
             }}
           >
-            {loading ? "SALVANDO..." : "SALVAR ALTERAÇÕES AGORA"}
+            {loading ? "SALVANDO..." : "PUBLICAR NOVOS PREÇOS"}
           </button>
         </form>
         <ToastContainer theme="dark" />
@@ -195,7 +199,7 @@ export default function PaginaConfiguracoes({
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
   if (session?.user?.email !== "leogomdesenvolvimento@gmail.com") {
-    return { redirect: { destination: "/admin", permanent: false } };
+    return { redirect: { destination: "/", permanent: false } };
   }
   return { props: { userEmail: session.user.email } };
 };
