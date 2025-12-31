@@ -55,7 +55,7 @@ export function Footer() {
           </a>
 
           <a
-            href="https://github.com/leogomesdev"
+            href="https://github.com/leo-gomes-dev"
             target="_blank"
             rel="noopener noreferrer"
             className={styles.socialLink}
@@ -65,7 +65,7 @@ export function Footer() {
           </a>
 
           <a
-            href="https://www.instagram.com/leogomesdev"
+            href="https://www.instagram.com/leogomes_dev"
             target="_blank"
             rel="noopener noreferrer"
             className={styles.socialLink}
