@@ -55,10 +55,7 @@ export default function Dashboard({ user }: HomeProps) {
   const [isPremium, setIsPremium] = useState(false);
 
   const router = useRouter();
-  const { session_id } = router.query;
-
-  const ADMIN_EMAIL = "leogomdesenvolvimento@gmail.com";
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email === "leogomdesenvolvimento@gmail.com";
 
   useEffect(() => {
     async function checkPremium() {
@@ -79,7 +76,7 @@ export default function Dashboard({ user }: HomeProps) {
     const q = query(
       tarefasRef,
       orderBy("created", "desc"),
-      where("user", "==", user?.email)
+      where("user", "==", user.email)
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
@@ -118,6 +115,7 @@ export default function Dashboard({ user }: HomeProps) {
           tarefa: input,
           public: publicTask,
           priority: priority,
+          user: user.email, // Crucial para validar a regra write do Firebase
         });
         setEditingTaskId(null);
         toast.success("Tarefa atualizada!");
@@ -125,7 +123,7 @@ export default function Dashboard({ user }: HomeProps) {
         await addDoc(collection(db, "tarefas"), {
           tarefa: input,
           created: new Date(),
-          user: user.email, // Garantindo o e-mail exato para as regras do Firebase
+          user: user.email, // Crucial para validar a regra create do Firebase
           public: publicTask,
           completed: false,
           priority: priority,
@@ -138,7 +136,7 @@ export default function Dashboard({ user }: HomeProps) {
       setPriority("baixa");
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao salvar: Verifique sua conexão ou permissões.");
+      toast.error("Erro de permissão no Firebase. Verifique suas regras.");
     }
   }
 
@@ -160,9 +158,9 @@ export default function Dashboard({ user }: HomeProps) {
     toast.info("URL Copiada!");
   }
 
-  const handleDeleteTask = async (task: TaskProps) => {
+  const handleDeleteTask = async (id: string) => {
     try {
-      await deleteDoc(doc(db, "tarefas", task.id));
+      await deleteDoc(doc(db, "tarefas", id));
       toast.success("Tarefa removida!");
     } catch (err) {
       toast.error("Erro ao remover tarefa.");
@@ -208,7 +206,7 @@ export default function Dashboard({ user }: HomeProps) {
                     borderRadius: "4px",
                     textDecoration: "none",
                     fontWeight: "bold",
-                    fontSize: "13px",
+                    fontSize: "12px",
                   }}
                 >
                   <FiSettings size={16} /> Configurações
@@ -225,124 +223,77 @@ export default function Dashboard({ user }: HomeProps) {
                 }
               />
 
+              {/* LINHA DE CHECKBOX E PRIORIDADE - RESPONSIVO */}
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "row",
+                  flexWrap: "wrap",
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: "15px",
-                  marginTop: "20px",
-                  marginBottom: "20px",
+                  marginTop: "15px",
                 }}
               >
-                {/* 1. Checkbox à Esquerda */}
-                <div
-                  className={styles.checkboxArea}
-                  style={{
-                    margin: 0,
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  <label
-                    htmlFor="public_check"
-                    style={{
-                      margin: 0,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      color: "#FFF",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      id="public_check"
-                      checked={publicTask}
-                      onChange={(e) => setPublicTask(e.target.checked)}
-                      style={{
-                        width: "18px",
-                        height: "18px",
-                        cursor: "pointer",
-                      }}
-                    />
-                    <span style={{ fontSize: "15px" }}>
-                      Tornar tarefa pública?
-                    </span>
-                  </label>
-                </div>
-
-                {/* 2. Botões de Prioridade à Direita (Substituindo o select feio) */}
+                {/* Checkbox à esquerda */}
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "10px" }}
                 >
-                  <span
+                  <input
+                    type="checkbox"
+                    id="public_check"
+                    checked={publicTask}
+                    onChange={(e) => setPublicTask(e.target.checked)}
+                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                  />
+                  <label
+                    htmlFor="public_check"
                     style={{
                       color: "#FFF",
-                      fontSize: "14px",
-                      fontWeight: "bold",
+                      cursor: "pointer",
+                      fontSize: "15px",
                     }}
                   >
-                    Prioridade:
-                  </span>
-                  <div style={{ display: "flex", gap: "8px" }}>
+                    Tornar pública?
+                  </label>
+                </div>
+
+                {/* Prioridade à direita (Botões Coloridos) */}
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  {["baixa", "media", "alta"].map((p) => (
                     <button
+                      key={p}
                       type="button"
-                      onClick={() => setPriority("baixa")}
+                      onClick={() => setPriority(p as any)}
                       style={{
                         padding: "6px 12px",
-                        borderRadius: "20px",
-                        border: "1px solid #27ae60",
+                        borderRadius: "15px",
+                        border: `1px solid ${
+                          p === "alta"
+                            ? "#e74c3c"
+                            : p === "media"
+                            ? "#f1c40f"
+                            : "#27ae60"
+                        }`,
                         background:
-                          priority === "baixa" ? "#27ae60" : "transparent",
-                        color: priority === "baixa" ? "#fff" : "#27ae60",
-                        cursor: "pointer",
+                          priority === p
+                            ? p === "alta"
+                              ? "#e74c3c"
+                              : p === "media"
+                              ? "#f1c40f"
+                              : "#27ae60"
+                            : "transparent",
+                        color: "#FFF",
+                        fontSize: "11px",
                         fontWeight: "bold",
-                        fontSize: "12px",
+                        cursor: "pointer",
                         transition: "0.3s",
                       }}
                     >
-                      BAIXA
+                      {p.toUpperCase()}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setPriority("media")}
-                      style={{
-                        padding: "6px 12px",
-                        borderRadius: "20px",
-                        border: "1px solid #f1c40f",
-                        background:
-                          priority === "media" ? "#f1c40f" : "transparent",
-                        color: priority === "media" ? "#fff" : "#f1c40f",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                        fontSize: "12px",
-                        transition: "0.3s",
-                      }}
-                    >
-                      MÉDIA
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPriority("alta")}
-                      style={{
-                        padding: "6px 12px",
-                        borderRadius: "20px",
-                        border: "1px solid #e74c3c",
-                        background:
-                          priority === "alta" ? "#e74c3c" : "transparent",
-                        color: priority === "alta" ? "#fff" : "#e74c3c",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                        fontSize: "12px",
-                        transition: "0.3s",
-                      }}
-                    >
-                      ALTA
-                    </button>
-                  </div>
+                  ))}
                 </div>
               </div>
 
@@ -351,31 +302,60 @@ export default function Dashboard({ user }: HomeProps) {
                 type="submit"
                 style={{ marginTop: "20px" }}
               >
-                {editingTaskId ? "Atualizar Tarefa" : "Registrar Tarefa"}
+                {editingTaskId ? "ATUALIZAR TAREFA" : "REGISTRAR TAREFA"}
               </button>
             </form>
           </div>
         </section>
 
         <section className={styles.taskContainer}>
+          {/* FILTROS CENTRALIZADOS E MODERNOS */}
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
+              flexDirection: "column",
               alignItems: "center",
-              marginBottom: "20px",
+              marginBottom: "30px",
+              width: "100%",
             }}
           >
-            <h1>Minhas tarefas</h1>
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              style={{ padding: "5px", borderRadius: "4px" }}
+            <h2
+              style={{ color: "#FFF", marginBottom: "15px", fontSize: "22px" }}
             >
-              <option value="all">Todas</option>
-              <option value="pending">Pendentes</option>
-              <option value="completed">Concluídas</option>
-            </select>
+              Minhas tarefas
+            </h2>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: "10px",
+              }}
+            >
+              {[
+                { id: "all", label: "TODAS" },
+                { id: "pending", label: "PENDENTES" },
+                { id: "completed", label: "CONCLUÍDAS" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  style={{
+                    padding: "8px 20px",
+                    borderRadius: "25px",
+                    border: "1px solid #3183ff",
+                    background: filter === f.id ? "#3183ff" : "transparent",
+                    color: "#FFF",
+                    fontWeight: "bold",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    transition: "0.3s",
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {filteredTasks.map((item) => (
@@ -394,7 +374,7 @@ export default function Dashboard({ user }: HomeProps) {
                         ? "#ea3140"
                         : item.priority === "media"
                         ? "#ff9b2d"
-                        : "#3183ff",
+                        : "#27ae60",
                   }}
                 >
                   {item.priority.toUpperCase()}
@@ -426,7 +406,7 @@ export default function Dashboard({ user }: HomeProps) {
                   </button>
                   <button
                     className={styles.trashButton}
-                    onClick={() => handleDeleteTask(item)}
+                    onClick={() => handleDeleteTask(item.id)}
                   >
                     <FaTrash size={20} color="#ea3140" />
                   </button>
@@ -473,5 +453,5 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   if (!session?.user) {
     return { redirect: { destination: "/", permanent: false } };
   }
-  return { props: { user: { email: session?.user?.email } } };
+  return { props: { user: { email: session.user.email } } };
 };
