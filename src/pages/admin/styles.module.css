@@ -1,9 +1,4 @@
 /* Reset básico para garantir consistência em todos os navegadores */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
 
 .container {
   width: 100%;
