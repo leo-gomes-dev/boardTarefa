@@ -244,6 +244,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                 {isEnterprise && (
                   <button
                     onClick={() => {
+                      // Remove filtros e garante que todas tarefas apareçam
                       setFilter("all");
                       setTimeout(() => {
                         window.print();
@@ -416,21 +417,51 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           </div>
         </section>
 
-        {/* AREA DE TASKS */}
-        <section className={`${styles.taskContainer} print-area`}>
-          {/* Cabeçalho apenas para PDF */}
-          <div
-            className="print-header"
-            style={{ textAlign: "center", marginBottom: "20px" }}
-          >
-            <h2>Minhas tarefas ({tasks.length})</h2>
-            <p>Data de impressão: {new Date().toLocaleDateString()}</p>
+        <section className={styles.taskContainer}>
+          <div style={{ textAlign: "center", marginBottom: "30px" }}>
+            <h2>Minhas tarefas ({totalCount})</h2>
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                justifyContent: "center",
+                marginTop: "15px",
+                opacity: isEnterprise || isAdmin ? 1 : 0.5,
+              }}
+            >
+              {[
+                { id: "all", label: "TODAS" },
+                { id: "pending", label: "PENDENTES" },
+                { id: "completed", label: "CONCLUÍDAS" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() =>
+                    handleActionGuard(
+                      () => setFilter(f.id),
+                      "Filtros",
+                      "enterprise"
+                    )
+                  }
+                  style={{
+                    padding: "6px 15px",
+                    borderRadius: "20px",
+                    border: "1px solid #3183ff",
+                    cursor: "pointer",
+                    background: filter === f.id ? "#3183ff" : "transparent",
+                    color: filter === f.id ? "#FFF" : "#3183ff",
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {tasks.map((item) => (
+          {filteredTasks.map((item) => (
             <article
               key={item.id}
-              className={`${styles.task} print-task`}
+              className={styles.task}
               style={{
                 marginBottom: "15px",
                 padding: "20px",
@@ -464,16 +495,80 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                     {item.tarefa}
                   </p>
                 </div>
-                <span
-                  className={`priorityTag ${item.priority}`}
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: "12px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {item.priority.toUpperCase()}
-                </span>
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <button
+                    onClick={() =>
+                      updateDoc(doc(db, "tarefas", item.id), {
+                        completed: !item.completed,
+                      })
+                    }
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaCheckCircle
+                      size={22}
+                      color={item.completed ? "#27ae60" : "#5c5c5c"}
+                    />
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleActionGuard(
+                        () => {
+                          setInput(item.tarefa);
+                          setEditingTaskId(item.id);
+                          setPriority(item.priority);
+                          setPublicTask(item.public);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        },
+                        "Edição",
+                        "premium"
+                      )
+                    }
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      opacity: isPremium || isAdmin ? 1 : 0.3,
+                    }}
+                  >
+                    <FaEdit size={20} color="#3183ff" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleActionGuard(
+                        () => {
+                          navigator.clipboard.writeText(
+                            window.location.origin + "/task/" + item.id
+                          );
+                          toast.info("Link copiado!");
+                        },
+                        "Compartilhamento",
+                        "premium"
+                      )
+                    }
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      opacity: isPremium || isAdmin ? 1 : 0.3,
+                    }}
+                  >
+                    <FiShare2 size={20} color="#3183ff" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTask(item)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaTrash size={20} color="#ea3140" />
+                  </button>
+                </div>
               </div>
             </article>
           ))}
@@ -492,3 +587,10 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+  const session = await getSession({ req });
+  if (!session?.user)
+    return { redirect: { destination: "/", permanent: false } };
+  return { props: { user: { email: session.user.email } } };
+};
