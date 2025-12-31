@@ -106,10 +106,11 @@ export default function Premium({ configs }: PremiumProps) {
                 ilimitadas
               </li>
               <li>
-                <FaCheckCircle color="#2ecc71" /> Suporte prioritário 24/7
+                <FaCheckCircle color="#2ecc71" /> Suporte prioritário
               </li>
               <li>
-                <FaCheckCircle color="#2ecc71" /> Backup em tempo real
+                <FaCheckCircle color="#2ecc71" /> Tarefas públicas e
+                compartilháveis
               </li>
             </ul>
 
@@ -140,10 +141,13 @@ export default function Premium({ configs }: PremiumProps) {
                 <FaCheckCircle color="#2ecc71" /> Tudo do Plano Anual
               </li>
               <li>
-                <FaCheckCircle color="#2ecc71" /> Exportação de dados (CSV)
+                <FaCheckCircle color="#2ecc71" /> Suporte prioritário 24/7
               </li>
               <li>
                 <FaCheckCircle color="#2ecc71" /> Mentoria de produtividade
+              </li>
+              <li>
+                <FaCheckCircle color="#2ecc71" /> Exportação de relatórios
               </li>
             </ul>
 

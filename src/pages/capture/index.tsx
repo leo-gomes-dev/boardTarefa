@@ -170,7 +170,7 @@ export default function CapturePage() {
       <footer
         style={{ textAlign: "center", padding: "20px", fontSize: "14px" }}
       >
-        © 2026 OrganizaTask. Todos os direitos reservados.
+        © 2026 OrganizaTask. By Leo Gomes Developer.
       </footer>
     </div>
   );
