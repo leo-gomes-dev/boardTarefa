@@ -1,6 +1,6 @@
 import { GetServerSideProps } from "next";
 import Head from "next/head";
-import Link from "next/link"; // Importação necessária
+import Link from "next/link";
 import styles from "../../styles/home.module.css";
 import Image from "next/image";
 import tarefaImg from "../../public/assets/tarefas.png";
@@ -34,7 +34,6 @@ export default function Home({ posts, comments }: HomeProps) {
           "Domine o seu dia, uma tarefa por vez."
         </h1>
 
-        {/* BOTÃO DE ACESSO - UX: O destaque principal da página */}
         <div className={styles.ctaArea}>
           <Link href="/premium">
             <button className={styles.buttonAcessar}>
@@ -43,14 +42,17 @@ export default function Home({ posts, comments }: HomeProps) {
           </Link>
         </div>
 
-        <div className={styles.infoContent}>
-          <section className={styles.box}>
-            <span>+{posts} tarefas criadas</span>
-          </section>
-          <section className={styles.box}>
-            <span>+{comments} feedbacks</span>
-          </section>
-        </div>
+        {/* 
+          SEÇÃO COMENTADA PARA USO FUTURO
+          <div className={styles.infoContent}>
+            <section className={styles.box}>
+              <span>+{posts} posts</span>
+            </section>
+            <section className={styles.box}>
+              <span>+{comments} comentários</span>
+            </section>
+          </div> 
+        */}
       </main>
     </div>
   );
