@@ -32,7 +32,7 @@ export default async function handler(
 
     const preference = new Preference(client);
 
-    // Configuração da Preference com a rota de notificação para Pix
+    // Configuração da Preference
     const result = await preference.create({
       body: {
         items: [
@@ -49,8 +49,8 @@ export default async function handler(
           plano: plano,
           email: emailRealParaFirebase,
         },
-        // O Mercado Pago chamará esta URL via POST sempre que o status do Pix mudar
-        notification_url: `${process.env.NEXTAUTH_URL}/api/webhook`,
+        // ATENÇÃO: Ajustado para /api/webhooks (com S) conforme seu teste de sucesso
+        notification_url: `${process.env.NEXTAUTH_URL}/api/webhooks`,
         back_urls: {
           success: `${req.headers.origin}/dashboard`,
           failure: `${req.headers.origin}/premium`,
@@ -60,7 +60,7 @@ export default async function handler(
       },
     });
 
-    // Retorna os dados para o frontend iniciar o redirect ou abrir o modal
+    // Retorna os dados para o frontend
     return res.status(200).json({
       id: result.id,
       url: result.init_point,

@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { db } from "../../services/firebaseConnection";
 import {
@@ -13,97 +13,112 @@ import { Resend } from "resend";
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
-const resend = new Resend(process.env.RESEND_API_KEY);
+
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Responde 200 para qualquer método que não seja POST (evita erros de pre-flight do proxy da Coolify)
-  if (req.method !== "POST") return res.status(200).send("OK");
-
-  // Captura robusta do ID para 2026: funciona para Pix (que usa data.id) e Cartão (que usa id direto)
-  const { data, action } = req.body;
-  const paymentId = data?.id || req.body?.id || req.query?.id;
-
-  if (!paymentId) return res.status(200).send("Sem ID");
+  // Sempre 200 para evitar bloqueios / retries do Mercado Pago
+  if (req.method !== "POST") {
+    return res.status(200).send("OK");
+  }
 
   try {
-    const payment = await new Payment(client).get({ id: String(paymentId) });
+    // Garante body válido (Coolify / proxies às vezes enviam string)
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
 
-    if (payment.status === "approved") {
-      const userEmail = payment.metadata?.email;
-      const planoNome = payment.metadata?.plano;
+    // Mercado Pago envia o ID de formas diferentes
+    const paymentId = body?.data?.id || body?.id || req.query?.id;
 
-      if (!userEmail || !planoNome)
-        return res.status(200).send("Metadata ausente");
-
-      const userRef = doc(db, "users", userEmail);
-      const userSnap = await getDoc(userRef);
-
-      if (
-        userSnap.exists() &&
-        userSnap.data()?.paymentId === String(paymentId)
-      ) {
-        return res.status(200).send("Ja processado");
-      }
-
-      const dataExpiracaoJS = new Date();
-      planoNome === "Enterprise 36 Meses"
-        ? dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 3)
-        : dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 1);
-
-      // 1. Atualiza Firebase
-      await setDoc(
-        userRef,
-        {
-          plano: planoNome,
-          status: "premium",
-          paymentId: String(paymentId),
-          dataAssinatura: serverTimestamp(),
-          dataExpiracao: Timestamp.fromDate(dataExpiracaoJS),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      // 2. Envia E-mail (Seu HTML original preservado)
-      try {
-        const baseUrl =
-          process.env.NEXTAUTH_URL || "https://tarefas.leogomesdev.com";
-        await resend.emails.send({
-          from: "OrganizaTask <suporte@leogomesdev.com>",
-          to: [userEmail],
-          subject: `🚀 Seu plano ${planoNome} está ativo!`,
-          html: `
-            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-              <h1 style="color: #3183ff;">Olá!</h1>
-              <p>Boas notícias: seu pagamento foi confirmado e o <strong>OrganizaTask 2026</strong> já liberou seu acesso!</p>
-              <p><strong>Plano Ativado:</strong> ${planoNome}</p>
-              <p><strong>Validade até:</strong> ${dataExpiracaoJS.toLocaleDateString()}</p>
-              <p>Aproveite todas as novas ferramentas de produtividade agora mesmo.</p>
-              <br />
-              <div style="text-align: center;">
-                <a href="${baseUrl}/dashboard" 
-                   style="display: inline-block; background: #3183ff; color: #fff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold;">
-                   Acessar meu Painel
-                </a>
-              </div>
-              <br /><br />
-              <p style="font-size: 12px; color: #888; text-align: center;">Obrigado por apoiar nosso projeto e nos pagar esse café! ☕</p>
-            </div>
-          `,
-        });
-      } catch (e) {
-        console.error("Erro email:", e);
-      }
+    if (!paymentId) {
+      return res.status(200).send("Sem paymentId");
     }
 
-    // Retorna JSON para confirmar recebimento ao Mercado Pago
+    const payment = await new Payment(client).get({
+      id: String(paymentId),
+    });
+
+    // Processa apenas pagamentos aprovados
+    if (payment.status !== "approved") {
+      return res.status(200).send("Pagamento não aprovado");
+    }
+
+    const userEmail = payment.metadata?.email;
+    const planoNome = payment.metadata?.plano;
+
+    if (!userEmail || !planoNome) {
+      return res.status(200).send("Metadata ausente");
+    }
+
+    const userRef = doc(db, "users", userEmail);
+    const userSnap = await getDoc(userRef);
+
+    // Idempotência — evita processar duas vezes
+    if (userSnap.exists() && userSnap.data()?.paymentId === String(paymentId)) {
+      return res.status(200).send("Pagamento já processado");
+    }
+
+    // Define validade do plano
+    const dataExpiracaoJS = new Date();
+    if (planoNome === "Enterprise 36 Meses") {
+      dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 3);
+    } else {
+      dataExpiracaoJS.setFullYear(dataExpiracaoJS.getFullYear() + 1);
+    }
+
+    // Atualiza Firestore
+    await setDoc(
+      userRef,
+      {
+        plano: planoNome,
+        status: "premium",
+        paymentId: String(paymentId),
+        dataAssinatura: serverTimestamp(),
+        dataExpiracao: Timestamp.fromDate(dataExpiracaoJS),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // Envio de e-mail (não bloqueia o webhook)
+    try {
+      const baseUrl =
+        process.env.NEXTAUTH_URL || "https://tarefas.leogomesdev.com";
+
+      await resend.emails.send({
+        from: "OrganizaTask <suporte@leogomesdev.com>",
+        to: [userEmail],
+        subject: `🚀 Seu plano ${planoNome} está ativo!`,
+        html: `
+          <div style="font-family:sans-serif;color:#333;max-width:600px;margin:0 auto;border:1px solid #eee;padding:20px;border-radius:10px;">
+            <h1 style="color:#3183ff;">Olá!</h1>
+            <p>Seu pagamento foi confirmado e seu acesso ao <strong>OrganizaTask 2026</strong> já está liberado.</p>
+            <p><strong>Plano:</strong> ${planoNome}</p>
+            <p><strong>Válido até:</strong> ${dataExpiracaoJS.toLocaleDateString()}</p>
+            <br/>
+            <div style="text-align:center;">
+              <a href="${baseUrl}/dashboard"
+                 style="display:inline-block;background:#3183ff;color:#fff;padding:12px 25px;border-radius:5px;text-decoration:none;font-weight:bold;">
+                Acessar meu Painel
+              </a>
+            </div>
+            <br/>
+            <p style="font-size:12px;color:#888;text-align:center;">
+              Obrigado por apoiar o OrganizaTask ☕
+            </p>
+          </div>
+        `,
+      });
+    } catch (emailError) {
+      console.error("Erro ao enviar e-mail:", emailError);
+    }
+
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Erro Webhook:", error);
-    // Retorna 200 mesmo em erro para evitar que o Mercado Pago fique tentando infinitamente em caso de erro de rede
-    return res.status(200).send("Erro silenciado");
+    console.error("Erro Webhook Mercado Pago:", error);
+    return res.status(200).send("Erro tratado");
   }
 }
