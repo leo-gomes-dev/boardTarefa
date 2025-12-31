@@ -11,6 +11,8 @@ import {
   FaShieldAlt,
   FaArrowLeft,
 } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Pagamento() {
   const { data: session } = useSession();
@@ -59,7 +61,7 @@ export default function Pagamento() {
       }
     } catch (err) {
       console.error("Erro no pagamento:", err);
-      alert("Houve um erro ao iniciar o pagamento. Tente novamente.");
+      toast.error("Houve um erro ao iniciar o pagamento. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -145,6 +147,7 @@ export default function Pagamento() {
           </section>
         </div>
       </main>
+      <ToastContainer position="bottom-right" autoClose={5000} />
     </div>
   );
 }
