@@ -18,12 +18,12 @@ export default async function handler(
     let { plano, valor, email } = req.body;
     const emailRealParaFirebase = email;
 
-    // Proteção para e-mail de teste em 2026
+    // Proteção para credenciais de teste
     if (process.env.MP_ACCESS_TOKEN?.startsWith("TEST-")) {
       email = "test_user_123@testuser.com";
     }
 
-    // Tratamento robusto do valor
+    // Tratamento do valor decimal
     const unitPrice = Number(String(valor).replace(",", "."));
 
     if (!unitPrice || isNaN(unitPrice)) {
@@ -32,6 +32,7 @@ export default async function handler(
 
     const preference = new Preference(client);
 
+    // Configuração da Preference com a rota de notificação para Pix
     const result = await preference.create({
       body: {
         items: [
@@ -48,6 +49,8 @@ export default async function handler(
           plano: plano,
           email: emailRealParaFirebase,
         },
+        // O Mercado Pago chamará esta URL via POST sempre que o status do Pix mudar
+        notification_url: `${process.env.NEXTAUTH_URL}/api/webhook`,
         back_urls: {
           success: `${req.headers.origin}/dashboard`,
           failure: `${req.headers.origin}/premium`,
@@ -57,10 +60,10 @@ export default async function handler(
       },
     });
 
-    // Retorna a URL para o frontend
+    // Retorna os dados para o frontend iniciar o redirect ou abrir o modal
     return res.status(200).json({
       id: result.id,
-      url: result.init_point, // Este é o link que o window.location.href usará
+      url: result.init_point,
     });
   } catch (err: any) {
     console.error("Erro MP Detalhado:", err.message);

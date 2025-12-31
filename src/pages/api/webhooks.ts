@@ -8,9 +8,8 @@ import {
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
-import { Resend } from "resend"; // Importação do serviço de e-mail
+import { Resend } from "resend";
 
-// Configuração do cliente Mercado Pago e Resend
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
@@ -26,17 +25,24 @@ export default async function handler(
     return res.status(405).end("Method Not Allowed");
   }
 
+  // Melhora na captura do ID para suportar notificações de PIX e Cartão
   const { action, type, data } = req.body;
-  const paymentId = data?.id || req.body.id;
+  const paymentId = data?.id || req.body?.id || req.body?.data?.id;
 
-  if (type === "payment" || action?.includes("payment")) {
+  // Aceita notificações de 'payment' ou ações relacionadas a pagamento
+  if (
+    type === "payment" ||
+    action?.includes("payment") ||
+    req.body?.action?.startsWith("payment")
+  ) {
     if (!paymentId) return res.status(200).send("ID ausente");
 
     try {
       const payment = await new Payment(client).get({ id: paymentId });
 
       if (payment.status !== "approved") {
-        return res.status(200).send("Pagamento não aprovado");
+        // Se ainda não aprovou (ex: Pix pendente), retornamos 200 para o MP parar de tentar até mudar o status
+        return res.status(200).send("Pagamento pendente ou outro status");
       }
 
       const userEmail = payment.metadata?.email;
@@ -77,17 +83,16 @@ export default async function handler(
         { merge: true }
       );
 
-      // --- TRECHO DE ENVIO DE E-MAIL ---
+      // --- ENVIO DE E-MAIL (MANTIDO SEU TEXTO ORIGINAL) ---
       try {
-        // Garante que o link aponte para o site real mesmo se o .env estiver em localhost
         const baseUrl =
           process.env.NEXTAUTH_URL &&
           !process.env.NEXTAUTH_URL.includes("localhost")
             ? process.env.NEXTAUTH_URL
-            : "http://tarefas.leogomesdev.com";
+            : "https://tarefas.leogomesdev.com";
 
         await resend.emails.send({
-          from: "OrganizaTask <suporte.leogomesdev.com>",
+          from: "OrganizaTask <suporte.leogomesdev.com>", // Verifique se o domínio está verificado no Resend
           to: [userEmail],
           subject: `🚀 Seu plano ${planoNome} está ativo!`,
           html: `
@@ -110,14 +115,9 @@ export default async function handler(
           `,
         });
       } catch (emailErr) {
-        // O erro no e-mail não bloqueia a resposta de sucesso do pagamento no banco
-        console.error("Erro ao enviar e-mail de boas-vindas:", emailErr);
+        console.error("Erro ao enviar e-mail:", emailErr);
       }
-      // --- FIM DO TRECHO DE E-MAIL ---
 
-      console.log(
-        `Plano ${planoNome} ativado para ${userEmail} até ${dataExpiracaoJS.toLocaleDateString()}`
-      );
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error("Erro no Webhook:", error);
