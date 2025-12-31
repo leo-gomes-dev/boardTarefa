@@ -69,15 +69,14 @@ export default function Dashboard({ user }: { user: { email: string } }) {
       if (userSnap.exists()) {
         const data = userSnap.data();
         const plan = data.plano || "Free";
+
+        // O segredo aqui é bater com o que o Webhook salva
         setIsPremium(
-          plan === "Premium Anual" ||
-            plan === "Professional Max" ||
-            plan === "Enterprise 36 Meses" ||
-            isAdmin
+          plan === "Premium Anual" || plan === "Enterprise 36 Meses" || isAdmin
         );
+
         setIsEnterprise(
-          plan === "Professional Max" ||
-            plan === "Enterprise 36 Meses" ||
+          plan === "Enterprise 36 Meses" || // Substituí "Professional Max" por este
             isAdmin
         );
       }

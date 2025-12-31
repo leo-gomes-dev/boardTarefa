@@ -48,7 +48,6 @@ export default function Task({ item, allComments }: TaskProps) {
     event.preventDefault();
 
     if (input === "") return;
-
     if (!session?.user?.email || !session?.user?.name) return;
 
     try {
@@ -79,9 +78,7 @@ export default function Task({ item, allComments }: TaskProps) {
     try {
       const docRef = doc(db, "comments", id);
       await deleteDoc(docRef);
-
       const deletComment = comments.filter((item) => item.id !== id);
-
       setComments(deletComment);
     } catch (err) {
       console.log(err);
@@ -113,7 +110,7 @@ export default function Task({ item, allComments }: TaskProps) {
             placeholder="Digite seu comentário..."
           />
           <button disabled={!session?.user} className={styles.button}>
-            Enviar comentário
+            {session?.user ? "Enviar comentário" : "Faça login para comentar"}
           </button>
         </form>
       </section>
@@ -148,7 +145,36 @@ export default function Task({ item, allComments }: TaskProps) {
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   const id = params?.id as string;
   const docRef = doc(db, "tarefas", id);
+  const snapshot = await getDoc(docRef);
 
+  // 1. Verifica se a tarefa existe
+  if (!snapshot.exists()) {
+    return { redirect: { destination: "/", permanent: false } };
+  }
+
+  const taskData = snapshot.data();
+
+  // 2. BUSCA O PLANO DO DONO DA TAREFA (Segurança Enterprise)
+  const ownerRef = doc(db, "users", taskData.user);
+  const ownerSnap = await getDoc(ownerRef);
+  const ownerData = ownerSnap.data();
+
+  // Regra: Somente Enterprise (ou Admin) pode ter tarefa pública visível
+  const isOwnerEnterprise =
+    ownerData?.plano === "Enterprise 36 Meses" ||
+    taskData.user === "leogomdesenvolvimento@gmail.com";
+
+  // Se a tarefa não é pública OU o dono não é Enterprise/Admin, redireciona
+  if (!taskData.public || !isOwnerEnterprise) {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
+
+  // 3. Busca de comentários
   const q = query(collection(db, "comments"), where("taskId", "==", id));
   const snapshotComments = await getDocs(q);
 
@@ -163,33 +189,13 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     });
   });
 
-  const snapshot = await getDoc(docRef);
-
-  if (snapshot.data() === undefined) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
-  }
-
-  if (!snapshot.data()?.public) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
-  }
-
-  const miliseconds = snapshot.data()?.created?.seconds * 1000;
+  const miliseconds = taskData.created?.seconds * 1000;
 
   const task = {
-    tarefa: snapshot.data()?.tarefa,
-    public: snapshot.data()?.public,
+    tarefa: taskData.tarefa,
+    public: taskData.public,
     created: new Date(miliseconds).toLocaleDateString(),
-    user: snapshot.data()?.user,
+    user: taskData.user,
     taskId: id,
   };
 
