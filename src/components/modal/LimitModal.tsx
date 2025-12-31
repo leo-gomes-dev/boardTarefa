@@ -1,33 +1,46 @@
 import Link from "next/link";
 import styles from "./styles.module.css";
+import { FaCoffee, FaRocket, FaTimes } from "react-icons/fa";
 
-// 1. A interface define "as regras" de como o modal recebe dados
 interface LimitModalProps {
   closeModal: () => void;
 }
 
-// 2. O componente usa o nome 'closeModal' para fechar o modal
 export function LimitModal({ closeModal }: LimitModalProps) {
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
+        {/* Ícone de fechar no canto superior */}
+        <button className={styles.closeIcon} onClick={closeModal}>
+          <FaTimes />
+        </button>
+
+        <div className={styles.iconHeader}>
+          <div className={styles.coffeeCircle}>
+            <FaCoffee size={40} color="#FFDD00" />
+          </div>
+        </div>
+
         <h2>Limite Atingido! ☕</h2>
-        <p>
+
+        <p className={styles.description}>
           Parece que você está trabalhando duro em 2026! Você atingiu o limite
-          de 30 tarefas gratuitas.
+          de <strong>30 tarefas gratuitas</strong>.
         </p>
-        <p style={{ marginTop: "10px" }}>
-          Que tal <strong>me pagar um café</strong> para desbloquear a
-          <strong> Versão Premium</strong> e ter escrita ilimitada para seus
-          projetos?
-        </p>
+
+        <div className={styles.highlightBox}>
+          <FaRocket color="#3183ff" />
+          <span>
+            Que tal <strong>me pagar um café</strong> para ter escrita ilimitada
+            em seus projetos?
+          </span>
+        </div>
+
         <div className={styles.modalActions}>
-          {/* Link para a página onde está o botão do Stripe */}
-          <Link href="/premium" className={styles.linkBuy}>
-            ☕ ME PAGAR UM CAFÉ (ACESSAR PREMIUM)
+          <Link href="/premium?fromModal=true" className={styles.linkBuy}>
+            BORA, PAGAR UM CAFÉ! 🚀
           </Link>
 
-          {/* O botão usa a função closeModal que vem do Dashboard */}
           <button onClick={closeModal} className={styles.buttonClose}>
             Agora não, obrigado
           </button>

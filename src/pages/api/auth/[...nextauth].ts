@@ -8,12 +8,13 @@ export const authOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     }),
   ],
-  // Adicionamos a configuração de páginas customizadas aqui
+  // UX 2026: Aponta para a sua página de login personalizada
   pages: {
-    signIn: "/signin", // Caminho da página bonita que você criou
+    signIn: "/signin",
   },
   callbacks: {
-    async session({ session, token, user }: any) {
+    // Adiciona o ID do usuário na sessão para facilitar consultas no Firestore
+    async session({ session, token }: any) {
       try {
         return {
           ...session,
@@ -26,9 +27,11 @@ export const authOptions = {
         };
       }
     },
+    // Executado no momento do login
     async signIn({ user, account, profile }: any) {
       const { email } = user;
       try {
+        // Você pode adicionar lógicas de bloqueio aqui se necessário
         return true;
       } catch (err) {
         console.log("ERRO NO SIGNIN: ", err);
@@ -36,6 +39,7 @@ export const authOptions = {
       }
     },
   },
+  // Chave de criptografia das sessões
   secret: process.env.JWT_SECRET as string,
 };
 

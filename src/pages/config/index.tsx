@@ -41,14 +41,18 @@ export default function PaginaConfiguracoes({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+
     try {
+      const userRef = doc(db, "users", userEmail);
+
       await setDoc(
-        doc(db, "users", userEmail),
+        userRef,
         {
           planoBasicValor: basicValor,
           planoBasicDescricao: basicDesc,
           planoAnualValor: anualValor,
           planoAnualDescricao: anualDesc,
+          // ALTERE AQUI: De planoVitalicio para planoTrienal
           planoTrienalValor: trienalValor,
           planoTrienalDescricao: trienalDesc,
           isAdmin: true,
@@ -56,9 +60,10 @@ export default function PaginaConfiguracoes({
         },
         { merge: true }
       );
-      toast.success("TABELA DE PREÇOS ATUALIZADA COM SUCESSO!");
-    } catch {
-      toast.error("Falha ao salvar configurações.");
+
+      toast.success("🔥 PREÇOS ATUALIZADOS COM SUCESSO!");
+    } catch (error: any) {
+      toast.error("Erro ao salvar.");
     } finally {
       setLoading(false);
     }

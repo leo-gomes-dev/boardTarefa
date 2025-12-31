@@ -8,6 +8,7 @@
   flex-direction: column;
   padding-bottom: 60px;
 }
+
 .main {
   margin-top: 70px;
   display: flex;
@@ -37,18 +38,21 @@
   margin: 28px;
   line-height: 150%;
 }
+
 .infoContent {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 20px;
 }
+
 .box {
   background-color: #fafafa;
   padding: 14px 44px;
   border-radius: 4px;
   transition: transform 0.3s;
 }
+
 .box:hover {
   transform: scale(1.08);
 }
@@ -61,6 +65,41 @@
   text-align: center;
   background-color: #0f0f0f;
 }
+
+/* --- BOTÕES E STATUS (INCLUSÕES) --- */
+
+.buttonAcessar {
+  background-color: #3183ff;
+  color: #fff;
+  border: 0;
+  padding: 16px 40px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+  margin-top: 2rem;
+}
+
+.buttonAcessar:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.activePlanBadge {
+  margin-top: 2rem;
+  color: #2ecc71; /* Cor verde para sucesso/ativo */
+  font-weight: bold;
+  padding: 12px 24px;
+  border: 1px solid #2ecc71;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* --- RESPONSIVIDADE --- */
 
 @media screen and (max-width: 580px) {
   .main {
@@ -80,22 +119,8 @@
     margin-bottom: 8px;
     text-align: center;
   }
-}
-
-.buttonAcessar {
-  background-color: #3183ff;
-  color: #fff;
-  border: 0;
-  padding: 16px 40px;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: transform 0.2s, filter 0.2s;
-  margin-top: 2rem;
-}
-
-.buttonAcessar:hover {
-  transform: scale(1.05);
-  filter: brightness(1.1);
+  .buttonAcessar {
+    width: 90%;
+    font-size: 1rem;
+  }
 }

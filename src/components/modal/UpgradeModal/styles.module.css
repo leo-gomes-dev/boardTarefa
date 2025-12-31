@@ -8,90 +8,65 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
   backdrop-filter: blur(8px);
 }
 
 .modalContent {
-  background: #121214;
+  background: #121214 !important; /* Força o fundo dark */
   padding: 40px;
   border-radius: 20px;
   max-width: 450px;
   width: 90%;
   text-align: center;
-  color: #ffffff;
-  position: relative;
+  color: #ffffff !important; /* Força texto branco */
   border: 1px solid #29292e;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-.closeIcon {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: transparent;
-  border: none;
-  color: #737380;
-  cursor: pointer;
-  font-size: 18px;
-  transition: color 0.2s;
-}
-
-.closeIcon:hover {
-  color: #fff;
-}
-
-.coffeeCircle {
-  background: #2c2f36;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+.iconHeader {
+  margin-bottom: 20px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
-  border: 2px solid #ffdd00;
 }
 
-.description {
+.modalContent h2 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #ffffff;
+}
+
+.modalContent p {
   color: #a8a8b3;
   line-height: 1.6;
-  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
-.highlightBox {
-  background: rgba(49, 131, 255, 0.1);
-  padding: 15px;
-  border-radius: 12px;
-  margin: 20px 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: #d1d1d1;
-  text-align: left;
+.modalContent strong {
+  color: #3183ff;
 }
 
 .modalActions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 25px;
+  gap: 12px;
+  margin-top: 30px;
 }
 
 .linkBuy {
   background: #3183ff;
-  color: #fff;
+  color: #ffffff !important;
   padding: 16px;
   border-radius: 12px;
   text-decoration: none;
   font-weight: bold;
   font-size: 16px;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
+  display: block;
 }
 
 .linkBuy:hover {
-  filter: brightness(1.1);
+  background: #4a94ff;
   transform: translateY(-2px);
 }
 
@@ -102,8 +77,9 @@
   cursor: pointer;
   color: #737380;
   font-size: 14px;
+  transition: color 0.2s;
 }
 
 .buttonClose:hover {
-  color: #fff;
+  color: #ffffff;
 }

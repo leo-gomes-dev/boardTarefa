@@ -2,19 +2,15 @@ import { GetServerSideProps } from "next";
 import { ChangeEvent, FormEvent, useState, useEffect } from "react";
 import styles from "./styles.module.css";
 import Head from "next/head";
+
 import { getSession } from "next-auth/react";
-import Link from "next/link";
-import { toast } from "react-toastify";
-
-// Componentes e Ícones
 import { Textarea } from "../../components/textarea";
-import { FiShare2, FiSettings } from "react-icons/fi";
-import { FaTrash, FaEdit, FaCheckCircle, FaFilePdf } from "react-icons/fa";
-import { LimitModal } from "@/components/modal/LimitModal";
-import { UpgradeModal } from "@/components/modal/UpgradeModal";
+import { FiShare2, FiSettings, FiPlusCircle } from "react-icons/fi";
+import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa";
+import { useRouter } from "next/router";
 
-// Firebase
 import { db } from "../../services/firebaseConnection";
+
 import {
   addDoc,
   collection,
@@ -27,7 +23,20 @@ import {
   updateDoc,
   getDoc,
   limit,
+  startAfter,
+  getDocs,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from "firebase/firestore";
+import Link from "next/link";
+
+import { toast } from "react-toastify";
+import { LimitModal } from "@/components/modal/LimitModal";
+import { UpgradeModal } from "@/components/modal/UpgradeModal";
+
+interface HomeProps {
+  user: { email: string };
+}
 
 interface TaskProps {
   id: string;
@@ -39,12 +48,12 @@ interface TaskProps {
   priority: "baixa" | "media" | "alta";
 }
 
-export default function Dashboard({ user }: { user: { email: string } }) {
+export default function Dashboard({ user }: HomeProps) {
   const [input, setInput] = useState("");
   const [publicTask, setPublicTask] = useState(false);
   const [tasks, setTasks] = useState<TaskProps[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [priority, setPriority] = useState<"baixa" | "media" | "alta">("baixa");
+  const [priority, setPriority] = useState("baixa");
   const [filter, setFilter] = useState("all");
 
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -52,53 +61,48 @@ export default function Dashboard({ user }: { user: { email: string } }) {
   const [activeFeature, setActiveFeature] = useState("");
 
   const [isPremium, setIsPremium] = useState(false);
-  const [isEnterprise, setIsEnterprise] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [lastVisible, setLastVisible] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const isAdmin = user?.email === "leogomdesenvolvimento@gmail.com";
 
-  // Verificação de Planos 2026
   useEffect(() => {
-    async function checkPlan() {
+    async function checkPremium() {
       if (!user?.email) return;
       const userRef = doc(db, "users", user.email);
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const data = userSnap.data();
-        const plan = data.plano || "Free";
-
-        setIsPremium(
-          plan === "Premium Anual" ||
-            plan === "Professional Max" ||
-            plan === "Enterprise 36 Meses" ||
-            isAdmin
-        );
-        setIsEnterprise(
-          plan === "Professional Max" ||
-            plan === "Enterprise 36 Meses" ||
-            isAdmin
-        );
+        const paidPlans = [
+          "Premium Anual",
+          "Professional Max",
+          "Enterprise 36 Meses",
+        ];
+        if (paidPlans.includes(data.plano)) setIsPremium(true);
       }
     }
-    checkPlan();
-  }, [user?.email, isAdmin]);
+    checkPremium();
+  }, [user?.email]);
 
-  // Busca de Tarefas e Contagem
   useEffect(() => {
     if (!user?.email) return;
     const qCount = query(
       collection(db, "tarefas"),
       where("user", "==", user.email)
     );
-    const unsubCount = onSnapshot(qCount, (snapshot) =>
-      setTotalCount(snapshot.size)
-    );
+    const unsubCount = onSnapshot(qCount, (snapshot) => {
+      setTotalCount(snapshot.size);
+    });
 
     const q = query(
       collection(db, "tarefas"),
       where("user", "==", user.email),
       orderBy("created", "desc"),
-      limit(30)
+      limit(15)
     );
     const unsubTasks = onSnapshot(q, (snapshot) => {
       let lista = [] as TaskProps[];
@@ -115,6 +119,8 @@ export default function Dashboard({ user }: { user: { email: string } }) {
         });
       });
       setTasks(lista);
+      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length >= 15);
     });
     return () => {
       unsubCount();
@@ -122,14 +128,8 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     };
   }, [user?.email]);
 
-  // Bloqueio por Plano
-  function handleActionGuard(
-    action: () => void,
-    feature: string,
-    requiredLevel: "premium" | "enterprise"
-  ) {
-    const hasAccess = requiredLevel === "premium" ? isPremium : isEnterprise;
-    if (!hasAccess && !isAdmin) {
+  function handlePremiumAction(action: () => void, feature: string) {
+    if (!isPremium && !isAdmin) {
       setActiveFeature(feature);
       setShowUpgradeModal(true);
       return;
@@ -139,17 +139,24 @@ export default function Dashboard({ user }: { user: { email: string } }) {
 
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
-    if (!isPremium && totalCount >= 30 && !editingTaskId && !isAdmin) {
-      setShowLimitModal(true);
-      return;
+
+    // VERIFICAÇÃO DE LIMITE: Se atingiu 30 tarefas e não é Premium/Admin
+    const isOverLimit =
+      !isPremium && totalCount >= 30 && !editingTaskId && !isAdmin;
+
+    if (isOverLimit) {
+      setShowLimitModal(true); // Abre o modal mesmo que o usuário tente clicar
+      return; // Interrompe a execução aqui
     }
+
     if (input.trim() === "") return;
+
     try {
       if (editingTaskId) {
         await updateDoc(doc(db, "tarefas", editingTaskId), {
           tarefa: input,
           public: publicTask,
-          priority,
+          priority: priority,
         });
         setEditingTaskId(null);
         toast.success("Tarefa atualizada!");
@@ -160,7 +167,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           user: user.email,
           public: publicTask,
           completed: false,
-          priority,
+          priority: priority,
         });
         toast.success("Tarefa registrada!");
       }
@@ -172,6 +179,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     }
   }
 
+  // FUNÇÃO DE DELEÇÃO RECUPERADA COM DESFAZER
   const handleDeleteTask = async (item: TaskProps) => {
     let isUndone = false;
     const toastId = toast.info(
@@ -199,8 +207,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
             fontWeight: "bold",
           }}
         >
-          {" "}
-          Desfazer{" "}
+          Desfazer
         </button>
       </div>,
       {
@@ -213,8 +220,24 @@ export default function Dashboard({ user }: { user: { email: string } }) {
     );
   };
 
+  async function handleToggleComplete(id: string, completed: boolean) {
+    await updateDoc(doc(db, "tarefas", id), { completed: !completed });
+  }
+
+  async function handleShare(id: string) {
+    await navigator.clipboard.writeText(`${window.location.origin}/task/${id}`);
+    toast.info("URL Copiada!");
+  }
+
+  function handleEdit(item: TaskProps) {
+    setInput(item.tarefa);
+    setPriority(item.priority);
+    setPublicTask(item.public);
+    setEditingTaskId(item.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   const filteredTasks = tasks.filter((item) => {
-    if (!isEnterprise && !isAdmin) return true;
     if (filter === "completed") return item.completed === true;
     if (filter === "pending") return item.completed === false;
     return true;
@@ -223,7 +246,7 @@ export default function Dashboard({ user }: { user: { email: string } }) {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Painel - OrganizaTask 2026</title>
+        <title>Dashboard - OrganizaTask 2026</title>
       </Head>
       <main className={styles.main}>
         <section className={styles.content}>
@@ -236,50 +259,29 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                 marginBottom: "20px",
               }}
             >
-              <h1 className={styles.title}>Painel</h1>
-              <div style={{ display: "flex", gap: "10px" }}>
-                {isEnterprise && (
-                  <button
-                    onClick={() => window.print()}
-                    style={{
-                      backgroundColor: "#ea3140",
-                      color: "#FFF",
-                      padding: "6px 12px",
-                      borderRadius: "4px",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                      fontSize: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <FaFilePdf size={16} /> Exportar PDF
-                  </button>
-                )}
-                {isAdmin && (
-                  <Link
-                    href="/config"
-                    style={{
-                      backgroundColor: "#3183ff",
-                      color: "#FFF",
-                      padding: "6px 12px",
-                      borderRadius: "4px",
-                      textDecoration: "none",
-                      fontWeight: "bold",
-                      fontSize: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <FiSettings size={16} /> Configurações
-                  </Link>
-                )}
-              </div>
+              <h1 className={styles.title} style={{ margin: 0 }}>
+                Dashboard
+              </h1>
+              {isAdmin && (
+                <Link
+                  href="/config"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    backgroundColor: "#3183ff",
+                    color: "#FFF",
+                    padding: "6px 12px",
+                    borderRadius: "4px",
+                    textDecoration: "none",
+                    fontWeight: "bold",
+                    fontSize: "12px",
+                  }}
+                >
+                  <FiSettings size={16} /> Configurações
+                </Link>
+              )}
             </div>
-
             <form onSubmit={handleRegisterTask}>
               <Textarea
                 placeholder="O que vamos fazer hoje?"
@@ -288,7 +290,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   setInput(e.target.value)
                 }
               />
-
               <div
                 style={{
                   display: "flex",
@@ -299,38 +300,27 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   marginTop: "15px",
                 }}
               >
-                {(isPremium || isAdmin) && (
-                  <div
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
+                  <input
+                    type="checkbox"
+                    id="public_check"
+                    checked={publicTask}
+                    onChange={(e) => setPublicTask(e.target.checked)}
+                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                  />
+                  <label
+                    htmlFor="public_check"
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
+                      color: "#FFF",
+                      cursor: "pointer",
+                      fontSize: "15px",
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      id="public_check"
-                      checked={publicTask}
-                      onChange={(e) => setPublicTask(e.target.checked)}
-                      style={{
-                        width: "18px",
-                        height: "18px",
-                        cursor: "pointer",
-                      }}
-                    />
-                    <label
-                      htmlFor="public_check"
-                      style={{
-                        color: "#FFF",
-                        cursor: "pointer",
-                        fontSize: "15px",
-                      }}
-                    >
-                      Deixar Pública
-                    </label>
-                  </div>
-                )}
-
+                    Deixar Pública
+                  </label>
+                </div>
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
@@ -339,20 +329,16 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                       key={p}
                       type="button"
                       onClick={() =>
-                        p === "baixa"
-                          ? setPriority(p as any)
-                          : handleActionGuard(
+                        p !== "baixa"
+                          ? handlePremiumAction(
                               () => setPriority(p as any),
-                              "Prioridades",
-                              "premium"
+                              "Prioridades"
                             )
+                          : setPriority(p as any)
                       }
                       style={{
                         padding: "6px 12px",
                         borderRadius: "15px",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                        fontSize: "11px",
                         border: `1px solid ${
                           p === "alta"
                             ? "#ea3140"
@@ -376,26 +362,26 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                             : p === "media"
                             ? "#ff9b2d"
                             : "#27ae60",
-                        opacity:
-                          !isPremium && p !== "baixa" && !isAdmin ? 0.4 : 1,
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        opacity: !isPremium && p !== "baixa" ? 0.6 : 1,
                       }}
                     >
-                      {" "}
-                      {p.toUpperCase()}{" "}
+                      {p.toUpperCase()}
                     </button>
                   ))}
                 </div>
               </div>
-
               <button
                 className={styles.button}
                 type="submit"
                 style={{
-                  marginTop: "15px",
                   opacity:
                     !isPremium && totalCount >= 30 && !editingTaskId && !isAdmin
                       ? 0.7
                       : 1,
+                  cursor: "pointer", // Mantém o cursor de clique para indicar que algo acontece
                 }}
               >
                 {!isPremium && totalCount >= 30 && !editingTaskId && !isAdmin
@@ -408,90 +394,109 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           </div>
         </section>
 
+        {/* --- SEÇÃO DE TAREFAS COM FILTROS RESTAURADOS --- */}
         <section className={styles.taskContainer}>
-          <div style={{ textAlign: "center", marginBottom: "30px" }}>
-            <h2>Minhas tarefas ({totalCount})</h2>
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                justifyContent: "center",
-                marginTop: "15px",
-                opacity: isEnterprise || isAdmin ? 1 : 0.5,
-              }}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginBottom: "30px",
+              width: "100%",
+            }}
+          >
+            <h2
+              style={{ color: "#333", marginBottom: "15px", fontSize: "22px" }}
             >
+              Minhas tarefas (
+              {isPremium ? totalCount : totalCount > 30 ? 30 : totalCount})
+            </h2>
+
+            {/* BOTÕES DE FILTRO (RESTAURADOS) */}
+            <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
               {[
-                { id: "all", label: "TODAS" },
-                { id: "pending", label: "PENDENTES" },
-                { id: "completed", label: "CONCLUÍDAS" },
+                { id: "all", label: "Todas" },
+                { id: "pending", label: "Pendentes" },
+                { id: "completed", label: "Concluídas" },
               ].map((f) => (
                 <button
                   key={f.id}
-                  onClick={() =>
-                    handleActionGuard(
-                      () => setFilter(f.id),
-                      "Filtros",
-                      "enterprise"
-                    )
-                  }
+                  onClick={() => setFilter(f.id)}
                   style={{
-                    padding: "6px 15px",
+                    padding: "6px 16px",
                     borderRadius: "20px",
                     border: "1px solid #3183ff",
-                    cursor: "pointer",
-                    background: filter === f.id ? "#3183ff" : "transparent",
+                    backgroundColor:
+                      filter === f.id ? "#3183ff" : "transparent",
                     color: filter === f.id ? "#FFF" : "#3183ff",
+                    fontWeight: "bold",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    transition: "0.2s",
                   }}
                 >
-                  {f.label}
+                  {f.label.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
 
+          {/* LISTAGEM FILTRADA */}
           {filteredTasks.map((item) => (
             <article
               key={item.id}
               className={styles.task}
               style={{
-                marginBottom: "15px",
-                padding: "20px",
-                background: "#FFF",
-                borderRadius: "8px",
-                borderLeft: `5px solid ${
-                  item.priority === "alta"
-                    ? "#ea3140"
-                    : item.priority === "media"
-                    ? "#ff9b2d"
-                    : "#27ae60"
-                }`,
+                opacity: item.completed ? 0.6 : 1,
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               <div
+                style={{ display: "flex", gap: "8px", marginBottom: "15px" }}
+              >
+                {item.public && <label className={styles.tag}>PÚBLICA</label>}
+                <label
+                  className={styles.tag}
+                  style={{
+                    backgroundColor:
+                      item.priority === "alta"
+                        ? "#ea3140"
+                        : item.priority === "media"
+                        ? "#ff9b2d"
+                        : "#27ae60",
+                  }}
+                >
+                  {item.priority.toUpperCase()}
+                </label>
+              </div>
+
+              <div
                 style={{
                   display: "flex",
+                  flexWrap: "wrap",
                   justifyContent: "space-between",
-                  alignItems: "center",
+                  gap: "20px",
+                  width: "100%",
                 }}
               >
                 <div style={{ flex: 1 }}>
                   <p
                     style={{
-                      textDecoration: item.completed ? "line-through" : "none",
                       margin: 0,
-                      fontWeight: "500",
                       color: "#000",
+                      textDecoration: item.completed ? "line-through" : "none",
+                      fontWeight: "500",
                     }}
                   >
                     {item.tarefa}
                   </p>
                 </div>
+
                 <div style={{ display: "flex", gap: "12px" }}>
                   <button
                     onClick={() =>
-                      updateDoc(doc(db, "tarefas", item.id), {
-                        completed: !item.completed,
-                      })
+                      handleToggleComplete(item.id, item.completed || false)
                     }
                     style={{
                       background: "none",
@@ -506,45 +511,27 @@ export default function Dashboard({ user }: { user: { email: string } }) {
                   </button>
                   <button
                     onClick={() =>
-                      handleActionGuard(
-                        () => {
-                          setInput(item.tarefa);
-                          setEditingTaskId(item.id);
-                          setPriority(item.priority);
-                          setPublicTask(item.public);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        },
-                        "Edição",
-                        "premium"
-                      )
+                      handlePremiumAction(() => handleEdit(item), "Edição")
                     }
                     style={{
                       background: "none",
                       border: "none",
                       cursor: "pointer",
-                      opacity: isPremium || isAdmin ? 1 : 0.3,
                     }}
                   >
                     <FaEdit size={20} color="#3183ff" />
                   </button>
                   <button
                     onClick={() =>
-                      handleActionGuard(
-                        () => {
-                          navigator.clipboard.writeText(
-                            window.location.origin + "/task/" + item.id
-                          );
-                          toast.info("Link copiado!");
-                        },
-                        "Compartilhamento",
-                        "premium"
+                      handlePremiumAction(
+                        () => handleShare(item.id),
+                        "Compartilhamento"
                       )
                     }
                     style={{
                       background: "none",
                       border: "none",
                       cursor: "pointer",
-                      opacity: isPremium || isAdmin ? 1 : 0.3,
                     }}
                   >
                     <FiShare2 size={20} color="#3183ff" />
@@ -565,7 +552,6 @@ export default function Dashboard({ user }: { user: { email: string } }) {
           ))}
         </section>
       </main>
-
       {showLimitModal && (
         <LimitModal closeModal={() => setShowLimitModal(false)} />
       )}
