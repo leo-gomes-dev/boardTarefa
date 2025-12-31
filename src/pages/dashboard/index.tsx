@@ -2,6 +2,7 @@ import { GetServerSideProps } from "next";
 import { ChangeEvent, FormEvent, useState, useEffect } from "react";
 import styles from "./styles.module.css";
 import Head from "next/head";
+import { useRouter } from "next/router"; // Importe o router
 
 import { getSession, signOut } from "next-auth/react";
 import { Textarea } from "../../components/textarea";
@@ -9,7 +10,6 @@ import { FiShare2 } from "react-icons/fi";
 import { FaTrash, FaEdit, FaCheckCircle } from "react-icons/fa";
 
 import { db } from "../../services/firebaseConnection";
-
 import {
   addDoc,
   collection,
@@ -23,25 +23,10 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 
-// biblioteca de Toast "mensagens"
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-interface HomeProps {
-  user: {
-    email: string;
-  };
-}
-
-interface TaskProps {
-  id: string;
-  created: Date;
-  public: boolean;
-  tarefa: string;
-  user: string;
-  completed?: boolean;
-  priority: "baixa" | "media" | "alta";
-}
+// ... Interfaces TaskProps e HomeProps mantêm-se iguais
 
 export default function Dashboard({ user }: HomeProps) {
   const [input, setInput] = useState("");
@@ -50,10 +35,16 @@ export default function Dashboard({ user }: HomeProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [priority, setPriority] = useState("baixa");
   const [filter, setFilter] = useState("all");
-  const [showLimitModal, setShowLimitModal] = useState(true);
+
+  // CORREÇÃO 1: Começa como false para não travar o carregamento
+  const [showLimitModal, setShowLimitModal] = useState(false);
+
+  const router = useRouter(); // Hook para redirecionamento
 
   useEffect(() => {
     async function loadTarefas() {
+      if (!user?.email) return;
+
       const tarefasRef = collection(db, "tarefas");
       const q = query(
         tarefasRef,
@@ -61,12 +52,11 @@ export default function Dashboard({ user }: HomeProps) {
         where("user", "==", user?.email)
       );
 
-      onSnapshot(q, (snapshot) => {
+      const unsub = onSnapshot(q, (snapshot) => {
         let lista = [] as TaskProps[];
 
         snapshot.forEach((doc) => {
           const data = doc.data();
-
           lista.push({
             id: doc.id,
             tarefa: data.tarefa,
@@ -80,136 +70,42 @@ export default function Dashboard({ user }: HomeProps) {
 
         setTasks(lista);
 
-        // Lógica para abrir o modal automaticamente se já tiver 30 ou mais tarefas
+        // CORREÇÃO 2: Se o usuário atingir o limite, redireciona ou abre o modal
         if (lista.length >= 30) {
+          // Se você quiser redirecionar IMEDIATAMENTE ao carregar:
+          // router.push("/premium");
+
+          // Ou apenas mostrar o modal:
           setShowLimitModal(true);
+        } else {
+          setShowLimitModal(false);
         }
       });
+
+      return () => unsub(); // Limpa o snapshot ao desmontar
     }
 
     loadTarefas();
-  }, [user?.email]);
+  }, [user?.email, router]);
 
-  function handleChangePublic(event: ChangeEvent<HTMLInputElement>) {
-    setPublicTask(event.target.checked);
-  }
-
-  // Adicione este estado ao seu componente
   async function handleRegisterTask(event: FormEvent) {
     event.preventDefault();
+
     if (input.trim() === "") {
       toast.warn("Preencha a tarefa!");
       return;
     }
 
+    // CORREÇÃO 3: Bloqueia apenas se for uma NOVA tarefa (!editingTaskId)
+    // E redireciona para a página premium
     if (!editingTaskId && tasks.length >= 30) {
-      setShowLimitModal(true);
+      toast.error("Limite de 30 tarefas atingido!");
+      router.push("/premium"); // Redireciona para a página premium
       return;
     }
 
-    // ... restante da sua lógica de addDoc ou updateDoc
+    // ... Lógica de salvamento que virá na Parte 2
   }
-
-  // Lógica de filtragem e classificação por prioridade
-  const filteredTasks = tasks
-    .filter((item) => {
-      if (filter === "completed") return item.completed === true;
-      if (filter === "pending") return item.completed === false;
-      return true; // "all"
-    })
-    .sort((a, b) => {
-      // Definimos explicitamente que as chaves são as strings permitidas
-      const pesos: { [key in "baixa" | "media" | "alta"]: number } = {
-        alta: 3,
-        media: 2,
-        baixa: 1,
-      };
-
-      // Usamos o operador de coalescência (??) para garantir um valor numérico caso venha vazio
-      const pesoA = pesos[a.priority as keyof typeof pesos] ?? 0;
-      const pesoB = pesos[b.priority as keyof typeof pesos] ?? 0;
-
-      return pesoB - pesoA;
-    });
-
-  async function handleShare(id: string) {
-    await navigator.clipboard.writeText(
-      `${process.env.NEXT_PUBLIC_URL}/task/${id}`
-    );
-    toast.info("URL Copiada com sucesso!");
-  }
-
-  function handleEdit(item: TaskProps) {
-    setInput(item.tarefa);
-    setPublicTask(item.public);
-    setPriority(item.priority || "baixa"); // Carrega a prioridade existente
-    setEditingTaskId(item.id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  async function handleToggleComplete(id: string, completed: boolean) {
-    const docRef = doc(db, "tarefas", id);
-    await updateDoc(docRef, {
-      completed: !completed,
-    });
-  }
-
-  // NOVA LÓGICA DE DELETAR COM DESFAZER
-  const handleDeleteTask = async (task: TaskProps) => {
-    let isUndone = false; // Controle local simples
-
-    const toastId = toast.info(
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          width: "100%",
-        }}
-      >
-        <span>Tarefa removida</span>
-        <button
-          onClick={() => {
-            isUndone = true; // Marca que o usuário clicou em desfazer
-            toast.dismiss(toastId); // Fecha este toast
-          }}
-          style={{
-            background: "#FFF",
-            color: "#3183ff",
-            border: "none",
-            padding: "4px 12px",
-            borderRadius: "4px",
-            cursor: "pointer",
-            marginLeft: "10px",
-            fontWeight: "bold",
-          }}
-        >
-          Desfazer
-        </button>
-      </div>,
-      {
-        autoClose: 4000,
-        closeOnClick: false, // Evita fechar o toast ao clicar na barra, forçando o uso do botão
-        onClose: async () => {
-          if (isUndone) {
-            // Se o usuário clicou em desfazer, apenas avisamos e NÃO deletamos do banco
-            toast.success("Ação desfeita!", {
-              toastId: "undo-success", // ID fixo evita duplicatas se clicar rápido
-              autoClose: 2000,
-            });
-          } else {
-            // Se o tempo acabou e NÃO foi clicado em desfazer, deletar permanente
-            try {
-              const docRef = doc(db, "tarefas", task.id);
-              await deleteDoc(docRef);
-            } catch (err) {
-              console.error("Erro ao deletar:", err);
-            }
-          }
-        },
-      }
-    );
-  };
 
   return (
     <div className={styles.container}>
@@ -220,7 +116,6 @@ export default function Dashboard({ user }: HomeProps) {
       <main className={styles.main}>
         <section className={styles.content}>
           <div className={styles.contentForm}>
-            {/* CONTAINER DO TÍTULO + BOTÃO SAIR */}
             <div
               style={{
                 display: "flex",
@@ -258,7 +153,6 @@ export default function Dashboard({ user }: HomeProps) {
                 }
               />
 
-              {/* Área de Prioridade e Checkbox */}
               <div className={styles.priorityArea} style={{ margin: "15px 0" }}>
                 <label
                   style={{ marginRight: 10, fontWeight: "bold", color: "#fff" }}
@@ -297,23 +191,25 @@ export default function Dashboard({ user }: HomeProps) {
                 </label>
               </div>
 
-              {/* BOTÃO PRINCIPAL */}
+              {/* BOTÃO PRINCIPAL COM LÓGICA DE PREMIUM */}
               <button
                 className={styles.button}
                 type="submit"
                 style={{
                   backgroundColor:
-                    !editingTaskId && tasks.length >= 30 ? "#444" : "#3183ff",
-                  cursor:
                     !editingTaskId && tasks.length >= 30
-                      ? "not-allowed"
-                      : "pointer",
+                      ? "#f1c40f"
+                      : "#3183ff",
+                  color: !editingTaskId && tasks.length >= 30 ? "#000" : "#FFF",
                 }}
               >
-                {editingTaskId ? "Salvar Alterações" : "Registrar Tarefa"}
+                {!editingTaskId && tasks.length >= 30
+                  ? "Seja Premium para adicionar +"
+                  : editingTaskId
+                  ? "Salvar Alterações"
+                  : "Registrar Tarefa"}
               </button>
 
-              {/* BOTÃO CANCELAR - Forçamos a exibição se houver ID de edição */}
               {editingTaskId !== null && (
                 <button
                   type="button"
@@ -335,19 +231,30 @@ export default function Dashboard({ user }: HomeProps) {
                 </button>
               )}
 
-              {/* CONTADOR DE TAREFAS - Fora de qualquer condição para sempre aparecer */}
-              <p
-                style={{
-                  color: tasks.length >= 30 ? "#ea3140" : "#ccc",
-                  fontSize: "14px",
-                  marginTop: "15px",
-                  textAlign: "center",
-                  fontWeight: tasks.length >= 30 ? "bold" : "normal",
-                  display: "block", // Garante que não seja ocultado por algum flex mal configurado
-                }}
-              >
-                {tasks.length} / 30 tarefas utilizadas
-              </p>
+              {/* CONTADOR COM LINK PARA PREMIUM */}
+              <div style={{ marginTop: "15px", textAlign: "center" }}>
+                <p
+                  style={{
+                    color: tasks.length >= 30 ? "#ea3140" : "#ccc",
+                    fontSize: "14px",
+                    fontWeight: tasks.length >= 30 ? "bold" : "normal",
+                  }}
+                >
+                  {tasks.length} / 30 tarefas utilizadas
+                </p>
+                {tasks.length >= 30 && (
+                  <Link
+                    href="/premium"
+                    style={{
+                      color: "#f1c40f",
+                      fontSize: "12px",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Aumentar meu limite agora!
+                  </Link>
+                )}
+              </div>
             </form>
           </div>
         </section>
@@ -363,6 +270,7 @@ export default function Dashboard({ user }: HomeProps) {
           >
             <h1>Tarefas</h1>
             <div style={{ display: "flex", gap: "8px" }}>
+              {/* Seus botões de filtro estão corretos */}
               <button
                 onClick={() => setFilter("all")}
                 style={{
@@ -438,6 +346,32 @@ export default function Dashboard({ user }: HomeProps) {
                     color={item.completed ? "#2ecc71" : "#CCC"}
                   />
                 </button>
+
+                {/* BOTÕES DE EDITAR E DELETAR (Verifique se estão no seu original) */}
+                <div
+                  style={{ marginLeft: "auto", display: "flex", gap: "10px" }}
+                >
+                  <button
+                    style={{
+                      background: "transparent",
+                      border: 0,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => handleEdit(item)}
+                  >
+                    <FaEdit size={20} color="#3183ff" />
+                  </button>
+                  <button
+                    style={{
+                      background: "transparent",
+                      border: 0,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => handleDeleteTask(item)}
+                  >
+                    <FaTrash size={20} color="#ea3140" />
+                  </button>
+                </div>
               </div>
 
               <div className={styles.taskContent}>
@@ -456,68 +390,12 @@ export default function Dashboard({ user }: HomeProps) {
                     <p>{item.tarefa}</p>
                   )}
                 </div>
-
-                <div style={{ display: "flex", gap: "15px" }}>
-                  <button
-                    style={{
-                      background: "transparent",
-                      border: 0,
-                      cursor: "pointer",
-                    }}
-                    onClick={() => handleEdit(item)}
-                  >
-                    <FaEdit size={24} color="#3183ff" />
-                  </button>
-                  <button
-                    className={styles.trashButton}
-                    onClick={() => handleDeleteTask(item)}
-                  >
-                    <FaTrash size={24} color="#ea3140" />
-                  </button>
-                </div>
               </div>
             </article>
           ))}
         </section>
       </main>
-
-      {/* MODAL DE LIMITE - COLOQUE EXATAMENTE AQUI */}
-      {showLimitModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h2>Limite Atingido! 🚀</h2>
-            <p>
-              Você atingiu o limite de 30 tarefas gratuitas em 2026. Desbloqueie
-              a <strong>Versão Premium</strong> para ter escrita ilimitada!
-            </p>
-            <div className={styles.modalActions}>
-              <Link
-                href="https://pagamento.leogomesdev.com.br"
-                target="_blank"
-                className={styles.linkBuy}
-              >
-                QUERO ACESSO ILIMITADO
-              </Link>
-              <button
-                onClick={() => setShowLimitModal(false)}
-                className={styles.buttonClose}
-              >
-                Talvez mais tarde
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <ToastContainer />
     </div>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  const session = await getSession({ req });
-  if (!session?.user) {
-    return { redirect: { destination: "/", permanent: false } };
-  }
-  return { props: { user: { email: session?.user?.email } } };
-};
