@@ -3,7 +3,7 @@ import Head from "next/head";
 import { getSession } from "next-auth/react";
 import { GetServerSideProps } from "next";
 import { db } from "../../services/firebaseConnection";
-import { doc, getDoc, setDoc } from "firebase/firestore"; // Alterado para setDoc
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -20,6 +20,7 @@ export default function PaginaConfiguracoes({
 
   useEffect(() => {
     async function loadConfigs() {
+      if (!userEmail) return;
       try {
         const userRef = doc(db, "users", userEmail);
         const docSnap = await getDoc(userRef);
@@ -36,7 +37,7 @@ export default function PaginaConfiguracoes({
           );
         }
       } catch (e) {
-        console.error("Erro ao carregar dados", e);
+        console.error("Erro ao carregar:", e);
       } finally {
         setLoading(false);
       }
@@ -47,10 +48,17 @@ export default function PaginaConfiguracoes({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+
+    if (!db) {
+      toast.error("Erro crítico: Banco de dados não inicializado.");
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Usamos setDoc para garantir a criação do documento
       const userRef = doc(db, "users", userEmail);
 
-      // setDoc com merge: true cria o doc se não existir, evitando o erro de permissão/inexistência
       await setDoc(
         userRef,
         {
@@ -58,17 +66,16 @@ export default function PaginaConfiguracoes({
           planoAnualDescricao: anualDesc,
           planoVitalicioValor: vitalicioValor,
           planoVitalicioDescricao: vitalicioDesc,
+          isAdmin: true,
           updatedAt: new Date(),
         },
         { merge: true }
       );
 
-      toast.success("Preços atualizados com sucesso!");
-    } catch (error) {
-      console.error("Erro completo:", error);
-      toast.error(
-        "Falha ao salvar. Verifique se você está logado com o email correto."
-      );
+      toast.success("🔥 PREÇOS ATUALIZADOS COM SUCESSO!");
+    } catch (error: any) {
+      console.error("ERRO DETALHADO DO FIREBASE:", error);
+      toast.error(`ERRO: ${error.message || "Erro desconhecido ao salvar"}`);
     } finally {
       setLoading(false);
     }
@@ -81,24 +88,22 @@ export default function PaginaConfiguracoes({
         color: "#fff",
         minHeight: "100vh",
         padding: "40px",
-        fontFamily: "sans-serif",
       }}
     >
       <Head>
-        <title>Ajustar Preços - OrganizaTask 2026</title>
+        <title>Ajustar Preços - 2026</title>
       </Head>
       <main style={{ maxWidth: "600px", margin: "0 auto" }}>
-        <h1 style={{ borderBottom: "1px solid #333", paddingBottom: "15px" }}>
-          Gerenciar Valores dos Planos
-        </h1>
+        <h1>Configurações de Admin</h1>
+        <p>Logado como: {userEmail}</p>
 
         <form
           onSubmit={handleSave}
           style={{
-            marginTop: "30px",
             display: "flex",
             flexDirection: "column",
             gap: "20px",
+            marginTop: "20px",
           }}
         >
           <div
@@ -108,38 +113,29 @@ export default function PaginaConfiguracoes({
               borderRadius: "8px",
             }}
           >
-            <h3 style={{ color: "#3183ff", marginBottom: "10px" }}>
-              Plano Anual
-            </h3>
-            <label style={{ display: "block", marginBottom: "5px" }}>
-              Valor Checkout (ex: 1,00):
-            </label>
+            <h3 style={{ color: "#3183ff" }}>Plano Anual</h3>
             <input
               style={{
                 width: "100%",
-                padding: "12px",
-                borderRadius: "4px",
-                border: "1px solid #333",
+                padding: "10px",
+                margin: "10px 0",
                 background: "#000",
                 color: "#fff",
               }}
               value={anualValor}
               onChange={(e) => setAnualValor(e.target.value)}
+              placeholder="Valor"
             />
-            <label style={{ display: "block", marginTop: "10px" }}>
-              Texto na Tela Premium:
-            </label>
             <input
               style={{
                 width: "100%",
-                padding: "12px",
-                borderRadius: "4px",
-                border: "1px solid #333",
+                padding: "10px",
                 background: "#000",
                 color: "#fff",
               }}
               value={anualDesc}
               onChange={(e) => setAnualDesc(e.target.value)}
+              placeholder="Descrição"
             />
           </div>
 
@@ -150,38 +146,29 @@ export default function PaginaConfiguracoes({
               borderRadius: "8px",
             }}
           >
-            <h3 style={{ color: "#e74c3c", marginBottom: "10px" }}>
-              Plano Vitalício
-            </h3>
-            <label style={{ display: "block", marginBottom: "5px" }}>
-              Valor Checkout (ex: 297,00):
-            </label>
+            <h3 style={{ color: "#e74c3c" }}>Plano Vitalício</h3>
             <input
               style={{
                 width: "100%",
-                padding: "12px",
-                borderRadius: "4px",
-                border: "1px solid #333",
+                padding: "10px",
+                margin: "10px 0",
                 background: "#000",
                 color: "#fff",
               }}
               value={vitalicioValor}
               onChange={(e) => setVitalicioValor(e.target.value)}
+              placeholder="Valor"
             />
-            <label style={{ display: "block", marginTop: "10px" }}>
-              Texto na Tela Premium:
-            </label>
             <input
               style={{
                 width: "100%",
-                padding: "12px",
-                borderRadius: "4px",
-                border: "1px solid #333",
+                padding: "10px",
                 background: "#000",
                 color: "#fff",
               }}
               value={vitalicioDesc}
               onChange={(e) => setVitalicioDesc(e.target.value)}
+              placeholder="Descrição"
             />
           </div>
 
@@ -191,14 +178,12 @@ export default function PaginaConfiguracoes({
             style={{
               padding: "15px",
               background: "#3183ff",
-              border: 0,
               color: "#fff",
-              borderRadius: "4px",
               fontWeight: "bold",
-              cursor: loading ? "not-allowed" : "pointer",
+              cursor: "pointer",
             }}
           >
-            {loading ? "SALVANDO..." : "ATUALIZAR TODOS OS PREÇOS"}
+            {loading ? "SALVANDO..." : "SALVAR ALTERAÇÕES AGORA"}
           </button>
         </form>
         <ToastContainer theme="dark" />
@@ -209,7 +194,6 @@ export default function PaginaConfiguracoes({
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const session = await getSession({ req });
-
   if (session?.user?.email !== "leogomdesenvolvimento@gmail.com") {
     return { redirect: { destination: "/admin", permanent: false } };
   }
