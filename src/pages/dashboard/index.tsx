@@ -50,7 +50,7 @@ export default function Dashboard({ user }: HomeProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [priority, setPriority] = useState("baixa");
   const [filter, setFilter] = useState("all");
-  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(true);
 
   useEffect(() => {
     async function loadTarefas() {
@@ -509,49 +509,35 @@ export default function Dashboard({ user }: HomeProps) {
         </section>
       </main>
 
-      {/* MODAL DE LIMITE (Faltava este bloco no final para 2026) */}
+      {/* MODAL DE LIMITE - COLOQUE EXATAMENTE AQUI */}
       {showLimitModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2 style={{ color: "#FFF" }}>Atenção! 🚀</h2>
-            <p style={{ color: "#ccc", margin: "20px 0" }}>
-              Você atingiu o limite máximo de 30 tarefas da sua conta gratuita.
-              Mude para a <strong>Versão Premium</strong> e tenha escrita
-              ilimitada para organizar toda sua rotina!
+            <h2>Limite Atingido! 🚀</h2>
+            <p>
+              Você atingiu o limite de 50 tarefas gratuitas em 2026. Desbloqueie
+              a <strong>Versão Premium</strong> para ter escrita ilimitada!
             </p>
-
-            <div
-              className={styles.modalActions}
-              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-            >
+            <div className={styles.modalActions}>
               <Link
-                href="https://leogomesdev.com"
+                href="https://seulinkdepagamento.com.br"
                 target="_blank"
                 className={styles.linkBuy}
-                style={{
-                  backgroundColor: "#2ecc71", // Cor verde para destacar "Compra"
-                  padding: "15px",
-                  borderRadius: "4px",
-                  color: "#fff",
-                  textDecoration: "none",
-                  fontWeight: "bold",
-                }}
               >
-                QUERO ACESSO ILIMITADO AGORA
+                QUERO ACESSO ILIMITADO
               </Link>
-
               <button
                 onClick={() => setShowLimitModal(false)}
                 className={styles.buttonClose}
               >
-                Continuar com 30 tarefas
+                Talvez mais tarde
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <ToastContainer autoClose={3000} />
+      <ToastContainer />
     </div>
   );
 }

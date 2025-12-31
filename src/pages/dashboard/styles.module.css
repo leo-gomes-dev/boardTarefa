@@ -1,9 +1,10 @@
 .container {
   width: 100%;
+  min-height: 100vh; /* Garante que o fundo cubra a tela toda */
+  background-color: #0f0f0f;
 }
 
 .content {
-  background-color: #0f0f0f;
   width: 100%;
   display: flex;
   align-items: center;
@@ -16,6 +17,8 @@
   padding: 0 18px;
   padding-bottom: 28px;
   margin-top: 58px;
+  display: flex;
+  flex-direction: column; /* Garante que os elementos empilhem corretamente */
 }
 
 .title {
@@ -23,18 +26,30 @@
   margin-bottom: 8px;
 }
 
-.checkboxArea label {
-  margin-left: 8px;
-  color: #fff;
+/* Ajuste na área de prioridade para não quebrar layout */
+.priorityArea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
 }
 
 .checkboxArea {
   margin: 14px 0;
+  display: flex;
+  align-items: center;
+}
+
+.checkboxArea label {
+  margin-left: 8px;
+  color: #fff;
+  cursor: pointer;
 }
 
 .checkbox {
   width: 18px;
   height: 18px;
+  cursor: pointer;
 }
 
 .button {
@@ -45,8 +60,22 @@
   background-color: #3183ff;
   padding: 12px 0;
   font-size: 18px;
+  cursor: pointer;
+  transition: filter 0.2s;
+  margin-top: 10px; /* Espaçamento entre botões */
 }
 
+.button:hover {
+  filter: brightness(1.1);
+}
+
+.button:disabled {
+  background-color: #444;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* LISTAGEM DE TAREFAS */
 .taskContainer {
   margin: 34px auto 0 auto;
   padding: 0 18px;
@@ -56,15 +85,11 @@
   flex-direction: column;
 }
 
-.taskContainer a {
-  text-decoration: none;
-  color: #0f0f0f;
-}
-
 .taskContainer h1 {
+  color: #fff; /* Faltava cor no título da lista */
   text-align: center;
   font-size: 32px;
-  margin-bottom: 14px;
+  margin-bottom: 24px;
 }
 
 .task {
@@ -73,31 +98,26 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  border: 1.5px solid #909090;
+  border: 1.5px solid #3183ff; /* Mudei para azul para combinar com o tema */
   border-radius: 4px;
   padding: 14px;
+  background-color: #17181f; /* Fundo levemente mais claro que o main */
+  color: #fff;
 }
 
 .tagContainer {
   display: flex;
   align-items: center;
-  justify-content: center;
   margin-bottom: 8px;
 }
 
 .tag {
   background-color: #3183ff;
-  padding: 2px 6px;
+  padding: 4px 8px;
   color: #fff;
   border-radius: 4px;
-  font-size: 12px;
-}
-
-.shareButton {
-  background: transparent;
-  border: 0;
-  margin: 0 8px;
-  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
 }
 
 .taskContent {
@@ -105,72 +125,71 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  gap: 10px;
 }
 
 .taskContent p {
   white-space: pre-wrap;
+  word-break: break-word; /* Evita que texto longo quebre o layout */
 }
 
-.trashButton {
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-  margin: 0 8px;
-}
-
+/* MODAL - AJUSTES CRÍTICOS */
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.9); /* Mais escuro para foco */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999; /* Z-index máximo para garantir visibilidade */
   padding: 20px;
 }
 
 .modalContent {
   background-color: #121214;
-  padding: 30px;
+  padding: 40px;
   border-radius: 8px;
-  max-width: 400px;
+  max-width: 450px;
   width: 100%;
   text-align: center;
   border: 1px solid #3183ff;
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .modalContent h2 {
   color: #fff;
   margin-bottom: 15px;
+  font-size: 24px;
 }
 
 .modalContent p {
   color: #ccc;
-  margin-bottom: 25px;
-  line-height: 1.5;
+  margin-bottom: 30px;
+  line-height: 1.6;
 }
 
 .modalActions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .linkBuy {
-  background-color: #3183ff;
+  background-color: #2ecc71; /* Verde para destacar botão de compra */
   color: #fff;
-  padding: 12px;
+  padding: 14px;
   border-radius: 4px;
   text-decoration: none;
   font-weight: bold;
-  transition: filter 0.2s;
+  font-size: 16px;
+  transition: transform 0.2s;
 }
 
 .linkBuy:hover {
-  filter: brightness(1.1);
+  transform: scale(1.02);
 }
 
 .buttonClose {
@@ -180,6 +199,7 @@
   cursor: pointer;
   font-size: 14px;
   padding: 10px;
+  transition: color 0.2s;
 }
 
 .buttonClose:hover {
