@@ -1,5 +1,7 @@
 .container {
   width: 100%;
+  background-color: #0f1115;
+  min-height: 100vh;
 }
 
 .main {
@@ -7,8 +9,10 @@
   flex-direction: column;
 }
 
+/* ---------- FORM / HEADER ---------- */
+
 .content {
-  background-color: #0f0f0f;
+  background-color: #121212;
   width: 100%;
   display: flex;
   align-items: center;
@@ -25,7 +29,7 @@
 }
 
 .title {
-  color: #fff;
+  color: #ffffff;
   margin-bottom: 18px;
   font-size: 28px;
 }
@@ -38,7 +42,7 @@
 
 .checkboxArea label {
   margin-left: 8px;
-  color: #fff;
+  color: #e0e0e0;
   cursor: pointer;
   font-size: 16px;
 }
@@ -49,29 +53,32 @@
   cursor: pointer;
 }
 
+/* ---------- BOTÃO ---------- */
+
 .button {
   width: 100%;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #fff;
   background-color: #3183ff;
   padding: 14px 0;
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .button:hover:not(:disabled) {
-  background-color: #1a66db;
+  background-color: #1f6fe5;
 }
 
-/* Estilo para o botão quando o limite de tarefas é atingido */
 .button:disabled {
-  background-color: #4b4b4b;
+  background-color: #3a3a3a;
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+/* ---------- LISTA DE TAREFAS ---------- */
 
 .taskContainer {
   margin: 40px auto;
@@ -87,20 +94,24 @@
   text-align: center;
   font-size: 32px;
   margin-bottom: 24px;
-  color: #0f0f0f;
+  color: #ffffff;
 }
+
+/* ---------- CARD ---------- */
 
 .task {
   margin-bottom: 18px;
   line-height: 150%;
   display: flex;
   flex-direction: column;
-  border: 1.5px solid #e2e2e2;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 18px;
-  background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  background-color: #1a1d23;
+  border: 1px solid #2a2e38;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
+
+/* ---------- TAGS / AÇÕES ---------- */
 
 .tagContainer {
   display: flex;
@@ -131,13 +142,15 @@
   border: 0;
   cursor: pointer;
   padding: 4px;
-  transition: transform 0.2s;
+  transition: transform 0.2s ease;
 }
 
 .shareButton:hover,
 .trashButton:hover {
-  transform: scale(1.1);
+  transform: scale(1.15);
 }
+
+/* ---------- CONTEÚDO ---------- */
 
 .taskContent {
   width: 100%;
@@ -153,18 +166,28 @@
 .taskContent p {
   white-space: pre-wrap;
   word-break: break-word;
-  color: #333;
+  color: #e4e4e4;
   font-size: 16px;
 }
 
+/* ---------- FOOTER ---------- */
+
 .taskFooter {
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid #2a2e38;
   padding-top: 12px;
   display: flex;
   justify-content: flex-end;
 }
 
 .createdAt {
-  color: #717171;
+  color: #9a9a9a;
   font-size: 13px;
+}
+
+/* ---------- TEXTO VAZIO ---------- */
+
+.emptyText {
+  color: #b5b5b5;
+  text-align: center;
+  margin-top: 40px;
 }
